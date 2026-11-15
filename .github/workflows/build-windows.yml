@@ -1,0 +1,30 @@
+name: Build Windows
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - run: flutter pub get
+      - run: flutter build windows --release --build-name=1.0.${{ github.run_number }} --build-number=${{ github.run_number }} --dart-define=APP_BUILD_NUMBER=${{ github.run_number }}
+      - name: Đóng gói bản release
+        shell: pwsh
+        run: |
+          $zip = "InMacGia-windows-${{ github.run_number }}.zip"
+          Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath $zip
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: windows-${{ github.run_number }}
+          name: windows-${{ github.run_number }}
+          files: InMacGia-windows-${{ github.run_number }}.zip
