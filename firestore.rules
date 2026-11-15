@@ -1,0 +1,18 @@
+// Rule Firestore cho app In Mác Giá (project gio-lam).
+// Chỉ thêm phần collection `cenovky_products` vào rule hiện có của
+// app chấm công Gio-Lam rồi dán toàn bộ vào Firebase Console >
+// Firestore Database > Rules > Publish.
+// KHÔNG thay thế rule cũ — ghép phần dưới đây vào file rules đã có.
+//
+// - Giá sản phẩm là thông tin công khai trên mác nên chỉ cần đã đăng
+//   nhập (kể cả ẩn danh) là đọc/ghi được. Không dùng tài khoản PIN
+//   như app chấm công.
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /cenovky_products/{maSanPham} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}

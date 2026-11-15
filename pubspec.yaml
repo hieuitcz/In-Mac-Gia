@@ -1,0 +1,65 @@
+# Tên app: In Mác Giá — app in mác giá 80x30mm cho cửa hàng potraviny.
+# Chạy trên Windows, in bằng máy in nhãn nhiệt cuộn 80mm.
+name: in_mac_gia
+description: "App in mác giá 80x30mm cho cửa hàng potraviny"
+# Không đăng app này lên pub.dev.
+publish_to: 'none'
+
+# Số phiên bản: CI truyền --build-name=1.0.<số bản> khi build.
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.9.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Biểu tượng kiểu iOS.
+  cupertino_icons: ^1.0.8
+
+  # Đồng bộ cloud qua Firebase project gio-lam (đăng nhập ẩn danh,
+  # collection cenovky_products). Mất mạng thì app vẫn chạy offline.
+  firebase_core: ^4.0.0
+  firebase_auth: ^6.0.0
+  cloud_firestore: ^6.0.0
+
+  # In nhãn: vẽ PDF đúng khổ mác rồi gửi ra máy in nhiệt.
+  printing: ^5.14.0
+  pdf: ^3.11.0
+
+  # Vẽ mã vạch EAN-13 thật (tính đúng số kiểm tra, quét được):
+  # barcode dùng trong file PDF, barcode_widget dùng xem trước trên màn hình.
+  barcode: ^2.2.9
+  barcode_widget: ^2.0.4
+
+  # Đường dẫn lưu dữ liệu local (AppData trên Windows).
+  path_provider: ^2.1.5
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+
+  # Font chữ đóng gói sẵn trong app để in đúng dấu tiếng Séc
+  # (č, ř, ž, š, ě...) cả khi máy in offline. Font Liberation
+  # (giấy phép SIL Open Font License) lấy từ hệ thống Linux.
+  fonts:
+    - family: LiberationSans
+      fonts:
+        - asset: assets/fonts/LiberationSans-Regular.ttf
+        - asset: assets/fonts/LiberationSans-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/LiberationSans-Italic.ttf
+          style: italic
+    - family: LiberationSerif
+      fonts:
+        - asset: assets/fonts/LiberationSerif-Regular.ttf
+        - asset: assets/fonts/LiberationSerif-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/LiberationSerif-Italic.ttf
+          style: italic
