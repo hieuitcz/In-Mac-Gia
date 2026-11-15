@@ -1,14 +1,14 @@
 // Cài đặt của app: khổ mác, mẫu đã chọn, các công tắc lúc in.
 // Lưu local trên máy, đồng bộ cloud không đụng tới cài đặt này
 // (mỗi máy tính tiền có thể để khổ mác và mẫu mặc định khác nhau).
+// In dọc: chỉ chỉnh chiều rộng mác (mặc định 80mm, đúng cuộn giấy
+// nhiệt). Chiều dài mác tự theo nội dung, máy in tự cắt nên không
+// cần nhập chiều cao nữa.
 import '../mau_mac/mau_mac.dart';
 
 class CaiDat {
   /// Chiều rộng mác (mm). Mặc định 80 — cuộn giấy nhiệt 80mm.
   final double rongMm;
-
-  /// Chiều cao mác (mm). Mặc định 30 — vừa thanh nẹp giá.
-  final double caoMm;
 
   /// Mẫu mác đã chọn lần gần nhất, lần sau mở app vẫn giữ.
   final MauMac mauMac;
@@ -48,7 +48,6 @@ class CaiDat {
 
   const CaiDat({
     this.rongMm = 80,
-    this.caoMm = 30,
     this.mauMac = MauMac.thuong,
     this.inChuDam = true,
     this.inChuHoa = true,
@@ -78,7 +77,6 @@ class CaiDat {
 
   CaiDat copyWith({
     double? rongMm,
-    double? caoMm,
     MauMac? mauMac,
     bool? inChuDam,
     bool? inChuHoa,
@@ -92,7 +90,6 @@ class CaiDat {
   }) {
     return CaiDat(
       rongMm: rongMm ?? this.rongMm,
-      caoMm: caoMm ?? this.caoMm,
       mauMac: mauMac ?? this.mauMac,
       inChuDam: inChuDam ?? this.inChuDam,
       inChuHoa: inChuHoa ?? this.inChuHoa,
@@ -109,7 +106,6 @@ class CaiDat {
 
   Map<String, dynamic> toJson() => {
     'rongMm': rongMm,
-    'caoMm': caoMm,
     'mauMac': mauMac.name,
     'inChuDam': inChuDam,
     'inChuHoa': inChuHoa,
@@ -124,8 +120,9 @@ class CaiDat {
 
   factory CaiDat.fromJson(Map<String, dynamic> json) {
     return CaiDat(
+      // File cài đặt cũ có khóa 'caoMm' thì cứ bỏ qua (không đọc nữa)
+      // vì giờ in dọc, chiều dài mác tự theo nội dung.
       rongMm: (json['rongMm'] as num?)?.toDouble() ?? 80,
-      caoMm: (json['caoMm'] as num?)?.toDouble() ?? 30,
       mauMac: mauMacTuTen(json['mauMac'] as String?) ?? MauMac.thuong,
       inChuDam: json['inChuDam'] as bool? ?? true,
       inChuHoa: json['inChuHoa'] as bool? ?? true,

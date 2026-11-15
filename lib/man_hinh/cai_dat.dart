@@ -17,7 +17,6 @@ class ManHinhCaiDat extends StatefulWidget {
 
 class _ManHinhCaiDatState extends State<ManHinhCaiDat> {
   late final TextEditingController _rong;
-  late final TextEditingController _cao;
   String? _loi;
 
   @override
@@ -25,7 +24,6 @@ class _ManHinhCaiDatState extends State<ManHinhCaiDat> {
     super.initState();
     final cd = widget.dieuKhien.caiDat;
     _rong = TextEditingController(text: _soThanhChu(cd.rongMm));
-    _cao = TextEditingController(text: _soThanhChu(cd.caoMm));
   }
 
   static String _soThanhChu(double so) {
@@ -41,20 +39,18 @@ class _ManHinhCaiDatState extends State<ManHinhCaiDat> {
   @override
   void dispose() {
     _rong.dispose();
-    _cao.dispose();
     super.dispose();
   }
 
   Future<void> _luuKhoMac() async {
     final rong = _docSo(_rong.text);
-    final cao = _docSo(_cao.text);
-    if (rong == null || cao == null || rong <= 0 || cao <= 0) {
-      setState(() => _loi = 'Nhập rộng và cao của mác (mm), lớn hơn 0.');
+    if (rong == null || rong <= 0) {
+      setState(() => _loi = 'Nhập chiều rộng mác (mm), lớn hơn 0.');
       return;
     }
     setState(() => _loi = null);
     await widget.dieuKhien.capNhatCaiDat(
-      widget.dieuKhien.caiDat.copyWith(rongMm: rong, caoMm: cao),
+      widget.dieuKhien.caiDat.copyWith(rongMm: rong),
     );
     if (mounted) {
       ScaffoldMessenger.of(
@@ -85,33 +81,18 @@ class _ManHinhCaiDatState extends State<ManHinhCaiDat> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Đo mác đang dùng rồi nhập vào đây. '
-                      'Mặc định 80×30 mm (cuộn giấy nhiệt 80 mm).',
+                      'In dọc, chiều rộng mác đúng bằng cuộn giấy nhiệt '
+                      'đang dùng (mặc định 80 mm). Chiều dài mác tự theo '
+                      'nội dung, máy in tự cắt nên không cần nhập.',
                       style: TextStyle(fontSize: 14, color: mauChuPhu),
                     ),
                     const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TruongNhap(
-                            nhan: 'Rộng (mm)',
-                            dieuKhien: _rong,
-                            kieuBanPhim: const TextInputType.numberWithOptions(
-                              decimal: true,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: TruongNhap(
-                            nhan: 'Cao (mm)',
-                            dieuKhien: _cao,
-                            kieuBanPhim: const TextInputType.numberWithOptions(
-                              decimal: true,
-                            ),
-                          ),
-                        ),
-                      ],
+                    TruongNhap(
+                      nhan: 'Rộng (mm)',
+                      dieuKhien: _rong,
+                      kieuBanPhim: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
                     ),
                     if (_loi != null) ...[
                       const SizedBox(height: 8),
@@ -194,8 +175,8 @@ class _ManHinhCaiDatState extends State<ManHinhCaiDat> {
                     const SizedBox(height: 4),
                     const Text(
                       'App in mác giá cho cửa hàng potraviny: nhập sản '
-                      'phẩm 1 lần, lưu lại dùng tiếp, in mác 80×30 mm '
-                      'bằng máy in nhãn nhiệt, nhiều mẫu để chọn.',
+                      'phẩm 1 lần, lưu lại dùng tiếp, in mác dọc rộng '
+                      '80 mm bằng máy in nhãn nhiệt, nhiều mẫu để chọn.',
                       style: TextStyle(fontSize: 14),
                     ),
                     const SizedBox(height: 4),

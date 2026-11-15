@@ -1,7 +1,7 @@
 // Xem trước mác trên màn hình — cùng bố cục và chuỗi hiển thị với
 // bản in PDF, chỉ khác là vẽ bằng widget Flutter để xem nhanh.
-// Khung xem trước cố định 320×120 (tỉ lệ 80×30), màn hình in sẽ
-// co lại vừa khung bằng FittedBox.
+// Khung xem trước rộng 320 (tương đương 80mm), cao tự theo nội dung
+// như bản in dọc — không ép tỉ lệ 80×30 nữa.
 // Tỉ lệ cỡ chữ của mẫu đang chọn (70%–130%) cũng áp vào đây để
 // xem trước đổi ngay theo thanh trượt.
 import 'package:barcode_widget/barcode_widget.dart';
@@ -32,7 +32,6 @@ class XemTruocMac extends StatelessWidget {
     final tiLe = caiDat.tiLeChuCua(mauThuc);
     return SizedBox(
       width: 320,
-      height: 120,
       child: Container(
         color: Colors.white,
         child: _veMac(sanPham, mauThuc, caiDat, tiLe),
@@ -226,7 +225,6 @@ class XemTruocMac extends StatelessWidget {
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 _chu(
                   tenSecHienThi(sp, cd),
@@ -234,6 +232,7 @@ class XemTruocMac extends StatelessWidget {
                   dam: cd.inChuDam,
                   toiDaDong: 2,
                 ),
+                const SizedBox(height: 8),
                 if (cd.inMaVach)
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -296,7 +295,7 @@ class XemTruocMac extends StatelessWidget {
               ),
             ],
           ),
-          const Spacer(),
+          const SizedBox(height: 12),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.end,
@@ -374,9 +373,9 @@ class XemTruocMac extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Container(height: 1, color: Colors.black),
-          Expanded(
-            child: Center(child: _haiTenSongSong(sp, cd, tiLe: tiLe)),
-          ),
+          const SizedBox(height: 12),
+          _haiTenSongSong(sp, cd, tiLe: tiLe),
+          const SizedBox(height: 12),
           _giaSongNguMotLan(sp, cd, tiLe: tiLe),
         ],
       ),
@@ -400,12 +399,12 @@ class XemTruocMac extends StatelessWidget {
             ),
           ),
         ),
-        Expanded(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: Center(child: _haiTenSongSong(sp, cd, tiLe: tiLe)),
-          ),
+        const SizedBox(height: 12),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          child: _haiTenSongSong(sp, cd, tiLe: tiLe),
         ),
+        const SizedBox(height: 12),
         Padding(
           padding: const EdgeInsets.only(bottom: 8),
           child: _giaSongNguMotLan(sp, cd, tiLe: tiLe),
@@ -438,11 +437,9 @@ class XemTruocMac extends StatelessWidget {
                 const Expanded(child: Divider(color: Colors.black, height: 1)),
               ],
             ),
-            Expanded(
-              child: Center(
-                child: _haiTenSongSong(sp, cd, serif: true, tiLe: tiLe),
-              ),
-            ),
+            const SizedBox(height: 12),
+            _haiTenSongSong(sp, cd, serif: true, tiLe: tiLe),
+            const SizedBox(height: 12),
             _giaSongNguMotLan(sp, cd, serif: true, tiLe: tiLe),
           ],
         ),
@@ -468,7 +465,7 @@ class XemTruocMac extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Container(height: 0.5, color: Colors.black),
-          const Spacer(),
+          const SizedBox(height: 12),
           _chu(
             '${tenSecHienThi(sp, cd)} $giaSec / ks',
             co: 13 * tiLe,
@@ -482,7 +479,6 @@ class XemTruocMac extends StatelessWidget {
             serif: true,
             toiDaDong: 2,
           ),
-          const Spacer(),
         ],
       ),
     );

@@ -1,9 +1,11 @@
 // Test model sản phẩm và cài đặt: giảm giá, khoảng giá, JSON,
-// tỉ lệ cỡ chữ theo mẫu.
+// tỉ lệ cỡ chữ theo mẫu, khổ giấy in cuộn dọc.
 import 'package:flutter_test/flutter_test.dart';
 import 'package:in_mac_gia/mau_mac/mau_mac.dart';
+import 'package:in_mac_gia/mau_mac/ve_mac_pdf.dart';
 import 'package:in_mac_gia/mo_hinh/cai_dat.dart';
 import 'package:in_mac_gia/mo_hinh/san_pham.dart';
+import 'package:pdf/pdf.dart';
 
 SanPham _sanPhamMau() {
   return SanPham(
@@ -91,10 +93,9 @@ void main() {
   });
 
   group('Cài đặt', () {
-    test('mặc định: khổ 80×30, mẫu thường, tỉ lệ chữ 100%', () {
+    test('mặc định: in dọc rộng 80 mm, mẫu thường, tỉ lệ chữ 100%', () {
       const cd = CaiDat();
       expect(cd.rongMm, 80);
-      expect(cd.caoMm, 30);
       expect(cd.mauMac, MauMac.thuong);
       expect(cd.tiLeChuCua(MauMac.songNguNheNhang), 1.0);
       expect(cd.tiLeChuCua(MauMac.thuong), 1.0);
@@ -121,8 +122,9 @@ void main() {
       expect(docLai.mauMac, MauMac.thuong);
     });
 
-    test('file cũ chưa có tỉ lệ chữ thì đọc được, mặc định 100%', () {
+    test('file cũ còn khóa chiều cao thì vẫn đọc được (bỏ qua khóa đó)', () {
       final docLai = CaiDat.fromJson({'rongMm': 80, 'caoMm': 30});
+      expect(docLai.rongMm, 80);
       expect(docLai.tiLeChuCua(MauMac.songNguNheNhang), 1.0);
     });
 
@@ -130,6 +132,23 @@ void main() {
       expect(MauMac.values.length, 8);
       final songNgu = MauMac.values.where((m) => m.laSongNgu).toList();
       expect(songNgu.length, 4);
+    });
+
+    test('khổ giấy in cuộn: rộng đúng chiều rộng mác, dài vô hạn', () {
+      // Trang dài vô hạn để package pdf tự co chiều cao trang vừa
+      // đúng nội dung, máy in nhiệt tự cắt đúng chỗ.
+      const cd = CaiDat();
+      final kho = khoGiayMac(cd);
+      expect(kho.width, 80 * PdfPageFormat.mm);
+      expect(kho.height, double.infinity);
+      expect(kho.marginLeft, 0);
+      expect(kho.marginRight, 0);
+      expect(kho.marginTop, 0);
+      expect(kho.marginBottom, 0);
+      // Đổi cuộn giấy hẹp hơn thì khổ in hẹp theo.
+      final hep = khoGiayMac(const CaiDat(rongMm: 57));
+      expect(hep.width, 57 * PdfPageFormat.mm);
+      expect(hep.height, double.infinity);
     });
   });
 }

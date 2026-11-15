@@ -3,7 +3,6 @@
 // In hàng loạt: tick nhiều sản phẩm ở màn hình chính, nhập số lượng
 // từng loại rồi in 1 lần.
 import 'package:flutter/material.dart';
-import 'package:pdf/pdf.dart';
 import 'package:printing/printing.dart';
 
 import '../dieu_khien.dart';
@@ -69,13 +68,9 @@ class _ManHinhInState extends State<ManHinhIn> {
           .map((sp) => (sanPham: sp, soLuong: _soLuong[sp.id] ?? 1))
           .toList();
       final taiLieu = await taoTaiLieuMac(mucIn: mucIn, caiDat: _caiDat);
-      final khoGiay = PdfPageFormat(
-        _caiDat.rongMm * PdfPageFormat.mm,
-        _caiDat.caoMm * PdfPageFormat.mm,
-      );
       final daIn = await Printing.layoutPdf(
         onLayout: (_) async => taiLieu.save(),
-        format: khoGiay,
+        format: khoGiayMac(_caiDat),
         name: 'Mac gia',
       );
       if (mounted && daIn) {
@@ -206,21 +201,17 @@ class _ManHinhInState extends State<ManHinhIn> {
                 child: Column(
                   children: [
                     if (spDau != null)
-                      AspectRatio(
-                        aspectRatio: cd.rongMm / cd.caoMm,
-                        child: FittedBox(
-                          fit: BoxFit.contain,
-                          child: XemTruocMac(
-                            sanPham: spDau,
-                            mau: cd.mauMac,
-                            caiDat: _caiDatXemTruoc,
-                          ),
+                      Center(
+                        child: XemTruocMac(
+                          sanPham: spDau,
+                          mau: cd.mauMac,
+                          caiDat: _caiDatXemTruoc,
                         ),
                       ),
                     const SizedBox(height: 8),
                     Text(
-                      'Khổ thật ${cd.rongMm.toInt()}×${cd.caoMm.toInt()} mm — '
-                      'đổi khổ trong Cài đặt.',
+                      'In dọc — rộng ${cd.rongMm.toInt()} mm, dài tự theo '
+                      'nội dung, máy in tự cắt. Đổi rộng trong Cài đặt.',
                       style: const TextStyle(fontSize: 13, color: mauChuPhu),
                     ),
                   ],

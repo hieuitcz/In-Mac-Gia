@@ -23,7 +23,6 @@ void main() {
     expect(await kho.docSanPham(), isEmpty);
     final cd = await kho.docCaiDat();
     expect(cd.rongMm, 80);
-    expect(cd.caoMm, 30);
   });
 
   test('ghi rồi đọc lại giữ nguyên sản phẩm', () async {
@@ -59,7 +58,7 @@ void main() {
     final kho = KhoDuLieu(thuMucGhiDe: thuMucTam);
     const cd = CaiDat();
     final daChinh = cd
-        .copyWith(rongMm: 80, caoMm: 30)
+        .copyWith(rongMm: 80)
         .voiTiLeChu(MauMac.songNguNheNhang, 0.85);
     await kho.luuCaiDat(daChinh);
     final docLai = await kho.docCaiDat();

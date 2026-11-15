@@ -1,5 +1,6 @@
 // Danh sách mẫu mác in — đã duyệt thiết kế với anh chủ.
-// Tất cả cùng khổ mác đã chỉnh trong Cài đặt (mặc định 80×30mm),
+// Tất cả cùng in dọc, rộng bằng chiều rộng mác đã chỉnh trong
+// Cài đặt (mặc định 80mm), dài tự theo nội dung, máy in tự cắt,
 // in đen trắng trên giấy nhiệt cuộn 80mm.
 enum MauMac {
   /// Mẫu thường: tên to bên trái, giá lớn bên phải, mã vạch + số mã

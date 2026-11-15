@@ -1,5 +1,8 @@
-// Vẽ mác ra file PDF đúng khổ đã chỉnh, để in bằng máy in nhiệt.
-// Mỗi mẫu mác là 1 trang PDF đúng bằng khổ mác (mặc định 80×30mm).
+// Vẽ mác ra file PDF để in bằng máy in nhiệt.
+// In dọc, khổ cuộn: chiều rộng mác đúng bằng cuộn giấy (mặc định
+// 80mm, chỉnh được trong Cài đặt), chiều dài (chiều cao trang) tự
+// theo nội dung — file PDF dài đúng bằng nội dung của mẫu để máy in
+// nhiệt tự cắt đúng chỗ, không ép chiều cao cố định nữa.
 // Mã vạch EAN-13 vẽ thật bằng package barcode (đúng số kiểm tra,
 // quét được). Font chữ đóng gói trong app (Liberation) để in đúng
 // dấu tiếng Séc cả khi máy offline.
@@ -22,17 +25,22 @@ import 'phong_chu.dart';
 /// 1 mục in: 1 sản phẩm in bao nhiêu cái.
 typedef MucIn = ({SanPham sanPham, int soLuong});
 
+/// Khổ giấy in cuộn: rộng đúng bằng chiều rộng mác đã chỉnh, dài
+/// vô hạn — package pdf sẽ tự co chiều cao trang vừa đúng nội dung
+/// của mẫu, máy in nhiệt tự cắt đúng chỗ.
+PdfPageFormat khoGiayMac(CaiDat caiDat) {
+  return PdfPageFormat(caiDat.rongMm * PdfPageFormat.mm, double.infinity);
+}
+
 /// Tạo tài liệu PDF gồm tất cả mác cần in (1 mác = 1 trang).
+/// Mỗi trang dài đúng bằng nội dung của mác đó.
 Future<pw.Document> taoTaiLieuMac({
   required List<MucIn> mucIn,
   required CaiDat caiDat,
 }) async {
   await PhongChuMac.tai();
   final taiLieu = pw.Document();
-  final khoGiay = PdfPageFormat(
-    caiDat.rongMm * PdfPageFormat.mm,
-    caiDat.caoMm * PdfPageFormat.mm,
-  );
+  final khoGiay = khoGiayMac(caiDat);
   for (final muc in mucIn) {
     final mau = mauThucTe(muc.sanPham, caiDat);
     // Vẽ mác ngay tại đây (không để vào hàm build của trang) để tỉ lệ
@@ -266,12 +274,14 @@ pw.Widget _macThuong(SanPham sp, CaiDat cd, double tiLe) {
   return pw.Container(
     padding: pw.EdgeInsets.all(2 * PdfPageFormat.mm),
     child: pw.Row(
-      crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+      // Hai cột căn giữa dọc với nhau. Căn giữa ở đây an toàn vì
+      // chiều cao hàng đã là số hữu hạn (cao nhất trong 2 cột),
+      // khác với canh giữa dọc trong 1 cột dài vô hạn.
+      crossAxisAlignment: pw.CrossAxisAlignment.center,
       children: [
         pw.Expanded(
           child: pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
-            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
             children: [
               _chu(
                 tenSecHienThi(sp, cd),
@@ -279,6 +289,7 @@ pw.Widget _macThuong(SanPham sp, CaiDat cd, double tiLe) {
                 dam: cd.inChuDam,
                 toiDaDong: 2,
               ),
+              pw.SizedBox(height: 2 * PdfPageFormat.mm),
               if (cd.inMaVach)
                 pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -299,7 +310,6 @@ pw.Widget _macThuong(SanPham sp, CaiDat cd, double tiLe) {
         pw.SizedBox(width: 2 * PdfPageFormat.mm),
         pw.Column(
           crossAxisAlignment: pw.CrossAxisAlignment.end,
-          mainAxisAlignment: pw.MainAxisAlignment.center,
           children: [
             _giaLon(giaChinhText(sp, cd), coSo: 26, tiLe: tiLe),
             if (khoiLuong != null) _chu(khoiLuong, co: 8 * tiLe),
@@ -348,7 +358,7 @@ pw.Widget _macGiamGia(SanPham sp, CaiDat cd, double tiLe) {
             ),
           ],
         ),
-        pw.Spacer(),
+        pw.SizedBox(height: 3 * PdfPageFormat.mm),
         pw.Row(
           mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
           crossAxisAlignment: pw.CrossAxisAlignment.end,
@@ -400,8 +410,11 @@ pw.Widget _macGon(SanPham sp, CaiDat cd, double tiLe) {
 pw.Widget _macChiMaVach(SanPham sp, CaiDat cd, double tiLe) {
   return pw.Container(
     padding: pw.EdgeInsets.all(2 * PdfPageFormat.mm),
+    // Canh đầu (không canh giữa) vì chiều cao cột đúng bằng nội
+    // dung nên canh giữa cũng không đổi vị trí, mà trang in dài
+    // vô hạn sẽ tính ra vị trí NaN.
     child: pw.Column(
-      mainAxisAlignment: pw.MainAxisAlignment.center,
+      mainAxisAlignment: pw.MainAxisAlignment.start,
       children: [
         _chu(
           tenSecHienThi(sp, cd),
@@ -435,9 +448,9 @@ pw.Widget _macSongNguHienDai(SanPham sp, CaiDat cd, double tiLe) {
         ),
         pw.SizedBox(height: 1 * PdfPageFormat.mm),
         _duongKe(),
-        pw.Expanded(
-          child: pw.Center(child: _haiTenSongSong(sp, cd, tiLe: tiLe)),
-        ),
+        pw.SizedBox(height: 3 * PdfPageFormat.mm),
+        _haiTenSongSong(sp, cd, tiLe: tiLe),
+        pw.SizedBox(height: 3 * PdfPageFormat.mm),
         _giaSongNguMotLan(sp, cd, tiLe: tiLe),
       ],
     ),
@@ -463,12 +476,12 @@ pw.Widget _macSongNguDaiDen(SanPham sp, CaiDat cd, double tiLe) {
           ),
         ),
       ),
-      pw.Expanded(
-        child: pw.Container(
-          padding: pw.EdgeInsets.symmetric(horizontal: 2 * PdfPageFormat.mm),
-          child: pw.Center(child: _haiTenSongSong(sp, cd, tiLe: tiLe)),
-        ),
+      pw.SizedBox(height: 3 * PdfPageFormat.mm),
+      pw.Container(
+        padding: pw.EdgeInsets.symmetric(horizontal: 2 * PdfPageFormat.mm),
+        child: _haiTenSongSong(sp, cd, tiLe: tiLe),
       ),
+      pw.SizedBox(height: 3 * PdfPageFormat.mm),
       pw.Padding(
         padding: pw.EdgeInsets.only(bottom: 2 * PdfPageFormat.mm),
         child: _giaSongNguMotLan(sp, cd, tiLe: tiLe),
@@ -507,11 +520,9 @@ pw.Widget _macSongNguCoDien(SanPham sp, CaiDat cd, double tiLe) {
               pw.Expanded(child: _duongKe()),
             ],
           ),
-          pw.Expanded(
-            child: pw.Center(
-              child: _haiTenSongSong(sp, cd, serif: true, tiLe: tiLe),
-            ),
-          ),
+          pw.SizedBox(height: 3 * PdfPageFormat.mm),
+          _haiTenSongSong(sp, cd, serif: true, tiLe: tiLe),
+          pw.SizedBox(height: 3 * PdfPageFormat.mm),
           _giaSongNguMotLan(sp, cd, serif: true, tiLe: tiLe),
         ],
       ),
@@ -546,7 +557,7 @@ pw.Widget _macSongNguNheNhang(SanPham sp, CaiDat cd, double tiLe) {
         ),
         pw.SizedBox(height: 1.5 * PdfPageFormat.mm),
         _duongKe(day: 0.5),
-        pw.Spacer(),
+        pw.SizedBox(height: 3 * PdfPageFormat.mm),
         _chu(
           '${tenSecHienThi(sp, cd)} $giaSec / ks',
           co: 11 * tiLe,
@@ -560,7 +571,6 @@ pw.Widget _macSongNguNheNhang(SanPham sp, CaiDat cd, double tiLe) {
           serif: true,
           toiDaDong: 2,
         ),
-        pw.Spacer(),
       ],
     ),
   );

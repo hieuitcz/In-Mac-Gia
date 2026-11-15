@@ -2,7 +2,8 @@
 
 App in mác giá cho cửa hàng potraviny, chạy trên Windows, in bằng máy in
 nhãn nhiệt cuộn 80 mm. Nhập sản phẩm 1 lần, lưu lại dùng tiếp, in mác
-80×30 mm gắn thanh nẹp giá, nhiều mẫu để chọn.
+dọc rộng 80 mm gắn thanh nẹp giá, dài tự theo nội dung, máy in tự cắt,
+nhiều mẫu để chọn.
 
 ## Tính năng
 
@@ -16,7 +17,9 @@ nhãn nhiệt cuộn 80 mm. Nhập sản phẩm 1 lần, lưu lại dùng tiếp
   bình thường nhờ lưu local.
 - **In hàng loạt**: tick nhiều sản phẩm, nhập số lượng từng loại, in
   1 lần. Xem trước đúng khổ thật trước khi in.
-- **Khổ mác chỉnh được**: mặc định 80×30 mm, đổi trong Cài đặt.
+- **In dọc, khổ rộng chỉnh được**: mặc định rộng 80 mm, đổi trong
+  Cài đặt. Chiều dài mác tự theo nội dung, máy in nhiệt tự cắt nên
+  không cần nhập chiều cao.
 - **8 mẫu mác** (chọn lúc in, app nhớ lựa chọn):
   1. Thường — tên to, giá lớn, mã vạch, đơn giá 100 g.
   2. Giảm giá — nhãn AKCE, giá cũ gạch ngang, giá mới to, ngày hết hạn.
@@ -49,11 +52,11 @@ flutter build windows --release --dart-define=APP_BUILD_NUMBER=<số bản>
 
 ## Bật đồng bộ cloud (làm 1 lần)
 
-1. **Dán mã API Firebase** vào `lib/firebase_options.dart` (chỗ `apiKey`
-   đang để trống). Lấy mã ở Firebase Console > Cài đặt project
-   (Project settings) > mục "Your apps" > app web "gio-lam-windows" >
-   trường `apiKey`. Chưa có mã này thì app vẫn chạy bình thường, chỉ
-   lưu trên máy.
+1. **Mã API Firebase** đã điền sẵn trong `lib/firebase_options.dart`
+   (dự án "gio-lam"). Chỉ cần làm lại bước này nếu đổi sang dự án
+   Firebase khác: lấy mã ở Firebase Console > Cài đặt project
+   (Project settings) > mục "Your apps" > app web > trường `apiKey`.
+   Chưa có mã này thì app vẫn chạy bình thường, chỉ lưu trên máy.
 2. **Bật đăng nhập ẩn danh**: Firebase Console > Authentication >
    Sign-in method > bật "Anonymous".
 3. **Thêm rule Firestore**: mở file `firestore.rules` ở gốc repo,
