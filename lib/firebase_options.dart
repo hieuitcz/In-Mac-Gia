@@ -16,7 +16,7 @@ import 'package:firebase_core/firebase_core.dart';
 class DefaultFirebaseOptions {
   static FirebaseOptions get windows => const FirebaseOptions(
     // Dán mã apiKey vào đây để bật đồng bộ cloud.
-    apiKey: '',
+    apiKey: 'AIzaSyCuGZlsiHnnJwaR7t9SaISRnEsMvCcrqKY',
     appId: '1:1039514283001:web:016265e83e30d0940e6b28',
     messagingSenderId: '1039514283001',
     projectId: 'gio-lam',
