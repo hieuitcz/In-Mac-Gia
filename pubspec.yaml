@@ -36,6 +36,17 @@ dependencies:
   # Đường dẫn lưu dữ liệu local (AppData trên Windows).
   path_provider: ^2.1.5
 
+# Ép phiên bản của các package gián tiếp (transitive).
+dependency_overrides:
+  # image 4.11.0 (kéo vào qua pdf/printing) gọi
+  # ZLibDecoder.decodeLazy — hàm này chỉ có từ Dart 3.10, trong khi
+  # workflow build dùng Flutter stable 3.35.7 (Dart 3.9.2) nên build
+  # Windows lỗi ở png_decoder.dart. Ghim về 4.5.4: SDK >=3.0.0 <4.0.0
+  # (tương thích Dart 3.9), không dùng decodeLazy (dùng decodeBytes),
+  # và vẫn thỏa yêu cầu image ^4.1.0 của pdf 3.11.0.
+  # Bỏ ghim khi workflow lên Flutter/Dart 3.10 trở lên.
+  image: 4.5.4
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
