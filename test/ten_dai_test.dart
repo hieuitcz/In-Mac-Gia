@@ -5,7 +5,7 @@
 // ở các mẫu cột tên hẹp (thường, giảm giá, gọn) thì tên xuống bao
 // nhiêu dòng tùy ý chứ không cắt chữ — vì 2 dòng không đủ chứa tên
 // rất dài trong cột hẹp mà user đã bỏ hướng tự co nhỏ chữ.
-// Lề trái/phải: nội dung thụt vào 2 bên (khổ 80mm chừa 3mm mỗi
+// Lề trái/phải: nội dung thụt vào 2 bên (khổ 80mm chừa 6mm mỗi
 // bên) để máy in nhiệt không cắt chữ ở mép; giá khoảng dài thì tự
 // co nhỏ lại cho vừa khổ chứ không tràn khỏi mép.
 import 'package:flutter/material.dart';
@@ -216,40 +216,93 @@ void main() {
   });
 
   group('lề trái/phải: nội dung thụt vào 2 bên, không chạm mép giấy', () {
-    test('lề theo tỉ lệ khổ giấy: khổ 80mm chừa 3mm mỗi bên', () {
-      expect(const CaiDat().leTrangMm, 3.0);
-      expect(const CaiDat().rongNoiDungMm, 74.0);
-      // Khổ khác thì lề theo tỉ lệ (3/80 khổ giấy).
-      expect(const CaiDat(rongMm: 40).leTrangMm, 1.5);
-      expect(const CaiDat(rongMm: 40).rongNoiDungMm, 37.0);
-      expect(const CaiDat(rongMm: 100).leTrangMm, 3.75);
+    test('lề theo tỉ lệ khổ giấy: khổ 80mm chừa 6mm mỗi bên', () {
+      expect(const CaiDat().leTrangMm, 6.0);
+      expect(const CaiDat().rongNoiDungMm, 68.0);
+      // Khổ khác thì lề theo tỉ lệ (6/80 khổ giấy).
+      expect(const CaiDat(rongMm: 40).leTrangMm, 3.0);
+      expect(const CaiDat(rongMm: 40).rongNoiDungMm, 34.0);
+      expect(const CaiDat(rongMm: 100).leTrangMm, 7.5);
+      expect(const CaiDat(rongMm: 100).rongNoiDungMm, 85.0);
     });
 
     testWidgets('xem trước: không chữ nào chạm mép giấy', (tester) async {
-      // Khung xem trước rộng 320px, lề 12px mỗi bên: mọi chữ phải
-      // nằm trong khung xem trước thụt vào 12px mỗi bên.
-      for (final mau in [
-        MauMac.songNguHienDai,
-        MauMac.songNguCoDien,
-        MauMac.songNguDaiDen,
-      ]) {
-        await _pumpXemTruoc(tester, mau: mau);
-        final khung = tester.getRect(find.byType(XemTruocMac));
-        expect(khung.width, closeTo(320, 1), reason: 'mẫu $mau');
-        for (final chu in tester.widgetList<Text>(find.byType(Text))) {
-          final rect = tester.getRect(find.text(chu.data!));
-          expect(
-            rect.left,
-            greaterThanOrEqualTo(khung.left + 11),
-            reason: 'mẫu $mau',
+      // Khung xem trước rộng 320px, lề 24px mỗi bên (6mm ở tỉ lệ
+      // 4px/mm): mọi chữ phải nằm trong khung xem trước thụt vào
+      // 24px mỗi bên. Kiểm tra cả 8 mẫu, ở 100% và 130%.
+      for (final tiLe in [1.0, 1.3]) {
+        for (final mau in MauMac.values) {
+          await _pumpXemTruoc(
+            tester,
+            mau: mau,
+            caiDat: const CaiDat().voiTiLeChu(mau, tiLe),
           );
-          expect(
-            rect.right,
-            lessThanOrEqualTo(khung.right - 11),
-            reason: 'mẫu $mau',
-          );
+          final khung = tester.getRect(find.byType(XemTruocMac));
+          expect(khung.width, closeTo(320, 1), reason: 'mẫu $mau');
+          for (final chu in tester.widgetList<Text>(find.byType(Text))) {
+            final rect = tester.getRect(find.text(chu.data!));
+            expect(
+              rect.left,
+              greaterThanOrEqualTo(khung.left + 23),
+              reason: 'mẫu $mau, tỉ lệ $tiLe, chữ "${chu.data}"',
+            );
+            expect(
+              rect.right,
+              lessThanOrEqualTo(khung.right - 23),
+              reason: 'mẫu $mau, tỉ lệ $tiLe, chữ "${chu.data}"',
+            );
+          }
         }
       }
+    });
+
+    test('PDF: khung Cổ điển và Nhẹ nhàng nằm hẳn trong lề 6mm', () async {
+      // Khung ngoài Cổ điển cách mép trang = lề in (6mm) + lề khung
+      // riêng (1,5mm) = 7,5mm; khung Nhẹ nhàng cách mép trang đúng
+      // bằng lề in (6mm). Cả hai đều nằm hẳn trong vùng in được của
+      // máy (cắt ~5mm mỗi bên) nên không bao giờ mất khung nữa.
+      const leIn = 6.0;
+      expect(const CaiDat().leTrangMm, leIn);
+      expect(leIn + 1.5, 7.5);
+      // Trang PDF vẫn rộng đúng khổ giấy 80mm, chỉ nội dung thụt vào.
+      final taiLieu = await taoTaiLieuMac(
+        mucIn: [(sanPham: _sanPhamTenDai(), soLuong: 1)],
+        caiDat: const CaiDat().copyWith(mauMac: MauMac.songNguCoDien),
+      );
+      final khoTrang = _docKhoTrang(await taiLieu.save());
+      expect(khoTrang.length, 1);
+      expect(khoTrang.first.$1, closeTo(80 * 72 / 25.4, 0.5));
+    });
+  });
+
+  group('từ dài không bị ngắt giữa từ', () {
+    test('cột tên chứa được từ dài nhất ở cỡ đã chọn', () {
+      // Chiều rộng từ đo bằng fontTools trên file Liberation đóng gói
+      // trong app (đơn vị mm, đã gồm dấu Séc):
+      // "ČOKOLÁDOVÉ" sans đậm 11pt = 27,8; serif đậm 10pt = 25,9;
+      // sans đậm 13pt = 32,9; serif đậm 11pt = 28,5.
+      // "SMALTOVANÉ" ngắn hơn nên vừa theo.
+      final rongNoiDung = const CaiDat().rongNoiDungMm; // 68mm
+      // Hàng 2 tên song ngữ (Hiện đại/Dải đen): đệm 2mm mỗi bên,
+      // vạch chia 0,5mm + khoảng cách 3mm mỗi bên.
+      final cotSongNgu = (rongNoiDung - 4 - 6.5) / 2;
+      expect(cotSongNgu, closeTo(28.75, 0.01));
+      expect(27.8, lessThan(cotSongNgu));
+      // Cổ điển: khung đôi ăn thêm lề 1,5 + viền 0,42 + đệm 1 +
+      // viền 0,18 + đệm trong 1 (mỗi bên), tên serif 10pt.
+      final cotCoDien = (rongNoiDung - 8.2 - 6.5) / 2;
+      expect(cotCoDien, closeTo(26.65, 0.01));
+      expect(25.9, lessThan(cotCoDien));
+      // Mẫu Thường/Gọn (giá dài): cột tên = nội dung − đệm 4 −
+      // giá tối đa 28 − khoảng cách 2; tên 13pt.
+      final cotTenHep = rongNoiDung - 4 - 28 - 2;
+      expect(cotTenHep, closeTo(34.0, 0.01));
+      expect(32.9, lessThan(cotTenHep));
+      // Mẫu Nhẹ nhàng (giá dài): cột tên = nội dung − đệm 8 −
+      // giá tối đa 28 − khoảng cách 2; tên serif 11pt.
+      final cotNheNhang = rongNoiDung - 8 - 28 - 2;
+      expect(cotNheNhang, closeTo(30.0, 0.01));
+      expect(28.5, lessThan(cotNheNhang));
     });
   });
 
@@ -272,8 +325,8 @@ void main() {
       expect(find.text('1 250 – 2 500'), findsOneWidget);
       final khung = tester.getRect(find.byType(XemTruocMac));
       final rect = tester.getRect(find.text('1 250 – 2 500'));
-      expect(rect.left, greaterThanOrEqualTo(khung.left + 11));
-      expect(rect.right, lessThanOrEqualTo(khung.right - 11));
+      expect(rect.left, greaterThanOrEqualTo(khung.left + 23));
+      expect(rect.right, lessThanOrEqualTo(khung.right - 23));
     });
 
     test('PDF: giá khoảng dài ở 130% vẫn tạo được, trang rộng 80 mm', () async {
@@ -287,6 +340,45 @@ void main() {
       final khoTrang = _docKhoTrang(await taiLieu.save());
       expect(khoTrang.length, 1);
       expect(khoTrang.first.$1, closeTo(80 * 72 / 25.4, 0.5));
+    });
+
+    test(
+      'PDF: giá khoảng dài không làm vỡ mẫu Thường/Gọn (từng crash mã vạch)',
+      () async {
+        // Giá "1 250 – 2 500 Kč" ở 26pt rộng ~53mm: mẫu Thường/Gọn
+        // trước đây để giá chiếm hết chiều rộng trong nên cột tên bị
+        // đẩy về 0 rồi BarcodeWidget ném lỗi "width > 0" khi vẽ.
+        // Giờ giá tự co nhỏ trong giới hạn, cột tên còn đủ chỗ.
+        for (final mau in [MauMac.thuong, MauMac.gon]) {
+          final cd = const CaiDat().copyWith(mauMac: mau).voiTiLeChu(mau, 1.3);
+          final taiLieu = await taoTaiLieuMac(
+            mucIn: [(sanPham: _sanPhamGiaKhoangDai(), soLuong: 1)],
+            caiDat: cd,
+          );
+          final khoTrang = _docKhoTrang(await taiLieu.save());
+          expect(khoTrang.length, 1, reason: 'mẫu $mau');
+          expect(
+            khoTrang.first.$1,
+            closeTo(80 * 72 / 25.4, 0.5),
+            reason: 'mẫu $mau',
+          );
+        }
+      },
+    );
+
+    testWidgets('xem trước: giá khoảng dài không làm tràn mẫu Thường/Gọn', (
+      tester,
+    ) async {
+      for (final mau in [MauMac.thuong, MauMac.gon]) {
+        final cd = const CaiDat().copyWith(mauMac: mau).voiTiLeChu(mau, 1.3);
+        await _pumpXemTruoc(
+          tester,
+          mau: mau,
+          caiDat: cd,
+          sanPham: _sanPhamGiaKhoangDai(),
+        );
+        expect(find.text('1 250 – 2 500'), findsOneWidget, reason: '$mau');
+      }
     });
   });
 }

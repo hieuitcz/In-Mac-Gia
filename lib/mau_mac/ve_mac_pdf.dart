@@ -53,8 +53,9 @@ Future<pw.Document> taoTaiLieuMac({
         pw.Page(
           pageFormat: khoGiay,
           // Lề trái/phải: máy in nhiệt in được hẹp hơn khổ giấy nên
-          // nội dung thụt vào 2 bên (khổ 80mm chừa 3mm mỗi bên),
-          // không vẽ ra hết khổ — chữ ở mép sẽ bị máy cắt mất.
+          // nội dung thụt vào 2 bên (khổ 80mm chừa 6mm mỗi bên),
+          // không vẽ ra hết khổ — chữ ở mép sẽ bị máy cắt mất, khung
+          // ở gần mép cũng bị cắt mất theo.
           margin: pw.EdgeInsets.symmetric(
             horizontal: caiDat.leTrangMm * PdfPageFormat.mm,
           ),
@@ -289,10 +290,12 @@ pw.Widget _haiTenSongSong(
       pw.Expanded(
         child: _chu(
           tenSecHienThi(sp, cd),
-          // Cỡ 11pt (giảm 1pt so với trước): lề trái/phải làm cột tên
-          // hẹp hơn 3mm nên từ dài thường gặp (SMALTOVANÉ 27,8mm,
-          // ČOKOLÁDOVÉ 28,5mm) mới vừa 1 dòng, không bị ngắt giữa từ.
-          co: 11 * tiLe,
+          // Cỡ 11pt cho sans, 10pt cho serif: chữ serif đậm rộng hơn
+          // sans nên "ČOKOLÁDOVÉ" serif 11pt (28,5mm) không vừa cột
+          // Cổ điển (~26,7mm) mà bị ngắt giữa từ thành "ČOKOLÁDOV /
+          // É ..."; serif 10pt (25,9mm) thì vừa. Sans 11pt vừa cột
+          // Hiện đại/Dải đen (28,8mm).
+          co: (serif ? 10 : 11) * tiLe,
           dam: cd.inChuDam,
           serif: serif,
           fontMac: cd.fontChu,
@@ -318,6 +321,35 @@ pw.Widget _haiTenSongSong(
 }
 
 // ---------- Từng mẫu ----------
+
+/// Giá lớn nhưng không bao giờ chiếm quá [rongToiDaMm] (mm): giá dài
+/// (khoảng giá "1 250 – 2 500 Kč" hoặc cỡ chữ kéo lên 130%) thì tự
+/// co nhỏ lại cho vừa, không đẩy cột tên về 0 rồi làm mã vạch lỗi
+/// (cột tên hẹp quá thì BarcodeWidget nhận chiều rộng ≤ 0 và ném
+/// lỗi khi vẽ — đã gặp ở mẫu Thường với giá khoảng dài sau khi lề
+/// tăng lên 6mm). Dùng cho giá lớn ở mẫu thường, giảm giá, gọn.
+pw.Widget _giaLonVuaKho(
+  String giaText,
+  double rongToiDaMm, {
+  double coSo = 26,
+  bool serif = false,
+  double tiLe = 1.0,
+  FontMac fontMac = FontMac.sans,
+}) {
+  return pw.ConstrainedBox(
+    constraints: pw.BoxConstraints(maxWidth: rongToiDaMm * PdfPageFormat.mm),
+    child: pw.FittedBox(
+      fit: pw.BoxFit.scaleDown,
+      child: _giaLon(
+        giaText,
+        coSo: coSo,
+        serif: serif,
+        tiLe: tiLe,
+        fontMac: fontMac,
+      ),
+    ),
+  );
+}
 
 /// Mẫu thường: tên to bên trái, giá lớn bên phải, mã vạch + số mã
 /// dưới tên, dòng "MN.: 500G" và "100G = 19,98 Kč".
@@ -374,9 +406,14 @@ pw.Widget _macThuong(SanPham sp, CaiDat cd, double tiLe) {
         pw.Column(
           crossAxisAlignment: pw.CrossAxisAlignment.end,
           children: [
-            _giaLon(
+            // Giá không chiếm quá phần còn lại sau khi trừ cột tên
+            // (34mm — đủ cho từ dài "ČOKOLÁDOVÉ" 13pt ≈ 33mm và mã
+            // vạch 32mm) và khoảng cách (2mm) khỏi chiều rộng trong
+            // (nội dung trừ đệm 2mm mỗi bên): tên dài không bị ngắt
+            // giữa từ, mã vạch không bao giờ bị đẩy về 0.
+            _giaLonVuaKho(
               giaChinhText(sp, cd),
-              coSo: 26,
+              cd.rongNoiDungMm - 4 - 34 - 2,
               tiLe: tiLe,
               fontMac: cd.fontChu,
             ),
@@ -461,9 +498,11 @@ pw.Widget _macGiamGia(SanPham sp, CaiDat cd, double tiLe) {
                   ),
               ],
             ),
-            _giaLon(
+            _giaLonVuaKho(
               giaGiamText(sp, cd),
-              coSo: 26,
+              // Giá giảm không chiếm quá 30mm: dòng ngày hết hạn bên
+              // trái rộng ~33mm, cộng lại vẫn vừa chiều rộng trong.
+              (cd.rongNoiDungMm - 4) / 2 - 2,
               tiLe: tiLe,
               fontMac: cd.fontChu,
             ),
@@ -484,18 +523,23 @@ pw.Widget _macGon(SanPham sp, CaiDat cd, double tiLe) {
       children: [
         pw.Expanded(
           // Tên dài thì xuống bao nhiêu dòng tùy ý, không bao
-          // giờ cắt chữ (cột tên hẹp, xem mẫu thường).
+          // giờ cắt chữ (cột tên hẹp, xem mẫu thường). Cỡ 13pt
+          // (thay vì 14pt): từ dài "ČOKOLÁDOVÉ" 14pt (≈35mm) không
+          // vừa cột tên 34mm mà bị ngắt giữa từ; 13pt (≈33mm) thì vừa.
           child: _chu(
             tenSecHienThi(sp, cd),
-            co: 14 * tiLe,
+            co: 13 * tiLe,
             dam: cd.inChuDam,
             fontMac: cd.fontChu,
           ),
         ),
         pw.SizedBox(width: 2 * PdfPageFormat.mm),
-        _giaLon(
+        // Giá không chiếm quá phần còn lại sau khi trừ cột tên
+        // (34mm — đủ cho từ dài "ČOKOLÁDOVÉ" 13pt ≈ 33mm) và khoảng
+        // cách (2mm): tên dài không bị ngắt giữa từ.
+        _giaLonVuaKho(
           giaChinhText(sp, cd),
-          coSo: 26,
+          cd.rongNoiDungMm - 4 - 34 - 2,
           tiLe: tiLe,
           fontMac: cd.fontChu,
         ),
@@ -619,7 +663,10 @@ pw.Widget _macSongNguCoDien(SanPham sp, CaiDat cd, double tiLe) {
       decoration: pw.BoxDecoration(
         border: pw.Border.all(color: PdfColors.black, width: 0.5),
       ),
-      padding: pw.EdgeInsets.all(2 * PdfPageFormat.mm),
+      // Đệm trong chỉ 1mm (thay vì 2mm): khung đôi ăn nhiều chiều
+      // ngang nên cột tên chỉ còn ~26,7mm — đệm 2mm thì từ dài
+      // "ČOKOLÁDOVÉ" serif 10pt (25,9mm) vẫn chật, đệm 1mm mới vừa.
+      padding: pw.EdgeInsets.all(1 * PdfPageFormat.mm),
       child: pw.Column(
         children: [
           pw.Row(
@@ -682,6 +729,7 @@ pw.Widget _macSongNguNheNhang(SanPham sp, CaiDat cd, double tiLe) {
           giaSec,
           '/ ks',
           tiLe,
+          rongNoiDungMm: cd.rongNoiDungMm,
           dam: cd.inChuDam,
         ),
         pw.SizedBox(height: 2 * PdfPageFormat.mm),
@@ -690,6 +738,7 @@ pw.Widget _macSongNguNheNhang(SanPham sp, CaiDat cd, double tiLe) {
           giaAnh,
           '/ pc',
           tiLe,
+          rongNoiDungMm: cd.rongNoiDungMm,
           dam: cd.inChuDam,
         ),
       ],
@@ -710,6 +759,7 @@ pw.Widget _dongNheNhang(
   String gia,
   String donVi,
   double tiLe, {
+  required double rongNoiDungMm,
   bool dam = false,
 }) {
   final (so, donViTien) = _tachGia(gia);
@@ -721,18 +771,30 @@ pw.Widget _dongNheNhang(
         child: _chu(ten, co: 11 * tiLe, dam: dam, serif: true, toiDaDong: 2),
       ),
       pw.SizedBox(width: 2 * PdfPageFormat.mm),
-      pw.Row(
-        mainAxisSize: pw.MainAxisSize.min,
-        crossAxisAlignment: pw.CrossAxisAlignment.end,
-        children: [
-          _chu(so, co: 16 * tiLe, dam: true, serif: true),
-          if (donViTien.isNotEmpty) ...[
-            pw.SizedBox(width: 1),
-            _chu(donViTien, co: 11 * tiLe, dam: dam, serif: true),
-          ],
-          pw.SizedBox(width: 1),
-          _chu(donVi, co: 11 * tiLe, dam: dam, serif: true),
-        ],
+      // Giá không chiếm quá phần còn lại sau khi trừ cột tên (30mm —
+      // đủ cho từ dài "ČOKOLÁDOVÉ" serif 11pt ≈ 28,5mm) và khoảng
+      // cách (2mm): tên dài không bị ngắt giữa từ thành "ČOKOL /
+      // ÁDOVÉ" khi giá khoảng dài chiếm hết chiều rộng.
+      pw.ConstrainedBox(
+        constraints: pw.BoxConstraints(
+          maxWidth: (rongNoiDungMm - 8 - 30 - 2) * PdfPageFormat.mm,
+        ),
+        child: pw.FittedBox(
+          fit: pw.BoxFit.scaleDown,
+          child: pw.Row(
+            mainAxisSize: pw.MainAxisSize.min,
+            crossAxisAlignment: pw.CrossAxisAlignment.end,
+            children: [
+              _chu(so, co: 16 * tiLe, dam: true, serif: true),
+              if (donViTien.isNotEmpty) ...[
+                pw.SizedBox(width: 1),
+                _chu(donViTien, co: 11 * tiLe, dam: dam, serif: true),
+              ],
+              pw.SizedBox(width: 1),
+              _chu(donVi, co: 11 * tiLe, dam: dam, serif: true),
+            ],
+          ),
+        ),
       ),
     ],
   );

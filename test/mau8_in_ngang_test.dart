@@ -195,8 +195,8 @@ void main() {
     final caoDoc = await caoXemTruoc(inNgang: false);
     final caoNgang = await caoXemTruoc(inNgang: true);
     // Bản chuyển vị: chiều dài dải tem bằng chiều rộng nội dung
-    // xem trước (320px trừ lề 2 bên 12px = 296px).
-    expect(caoNgang, closeTo(296, 2));
+    // xem trước (320px trừ lề 2 bên 24px = 272px).
+    expect(caoNgang, closeTo(272, 2));
     expect(caoNgang, greaterThan(caoDoc));
   });
 }

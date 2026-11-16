@@ -23,10 +23,10 @@ class XemTruocMac extends StatelessWidget {
   /// (tỉ lệ 4px/mm), cao tự theo nội dung như bản in dọc.
   static const double _rongXemTruoc = 320;
 
-  /// Lề trái/phải trong xem trước: 3mm ở tỉ lệ 4px/mm, đúng bằng
-  /// lề in (khổ 80mm chừa 3mm mỗi bên) — xem trước hiện đúng kích
+  /// Lề trái/phải trong xem trước: 6mm ở tỉ lệ 4px/mm, đúng bằng
+  /// lề in (khổ 80mm chừa 6mm mỗi bên) — xem trước hiện đúng kích
   /// thước thật, nội dung không chạm mép giấy như bản in ra.
-  static const double _leXemTruoc = 12;
+  static const double _leXemTruoc = 24;
 
   /// Chiều rộng nội dung xem trước sau khi trừ lề 2 bên.
   static const double _rongNoiDungXemTruoc = _rongXemTruoc - 2 * _leXemTruoc;
@@ -155,6 +155,33 @@ class XemTruocMac extends StatelessWidget {
     );
   }
 
+  /// Giá lớn nhưng không bao giờ chiếm quá [rongToiDa] (px): giá dài
+  /// (khoảng giá "1 250 – 2 500 Kč" hoặc cỡ chữ kéo lên 130%) thì tự
+  /// co nhỏ lại cho vừa, không đẩy cột tên về 0 rồi làm khung xem
+  /// trước tràn (giống hệt bản in PDF).
+  Widget _giaLonVuaKho(
+    String giaText,
+    double rongToiDa, {
+    double coSo = 30,
+    bool serif = false,
+    double tiLe = 1.0,
+    FontMac fontMac = FontMac.sans,
+  }) {
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxWidth: rongToiDa),
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: _giaLon(
+          giaText,
+          coSo: coSo,
+          serif: serif,
+          tiLe: tiLe,
+          fontMac: fontMac,
+        ),
+      ),
+    );
+  }
+
   Widget _maVach(
     SanPham sp, {
     required double rong,
@@ -242,10 +269,10 @@ class XemTruocMac extends StatelessWidget {
         Expanded(
           child: _chu(
             tenSecHienThi(sp, cd),
-            // Cỡ 13 (giảm 1 so với trước) cho khớp bản in PDF: lề
-            // trái/phải làm cột tên hẹp hơn nên từ dài mới vừa 1 dòng,
-            // không bị ngắt giữa từ.
-            co: 13 * tiLe,
+            // Cỡ 13 (sans) và 12 (serif): chữ serif đậm rộng hơn
+            // sans nên tên Séc serif phải nhỏ hơn 1 cỡ mới vừa cột
+            // Cổ điển, không bị ngắt giữa từ — giống hệt bản in PDF.
+            co: (serif ? 12 : 13) * tiLe,
             dam: cd.inChuDam,
             serif: serif,
             fontMac: cd.fontChu,
@@ -328,9 +355,13 @@ class XemTruocMac extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              _giaLon(
+              // Giá không chiếm quá phần còn lại sau khi trừ cột tên
+              // (136px = 34mm — đủ cho từ dài "ČOKOLÁDOVÉ" 13pt và mã
+              // vạch 128px) và khoảng cách (8px): tên dài không bị
+              // ngắt giữa từ, mã vạch không bị đẩy về 0.
+              _giaLonVuaKho(
                 giaChinhText(sp, cd),
-                coSo: 30,
+                _rongNoiDungXemTruoc - 16 - 136 - 8,
                 tiLe: tiLe,
                 fontMac: cd.fontChu,
               ),
@@ -418,9 +449,12 @@ class XemTruocMac extends StatelessWidget {
                     ),
                 ],
               ),
-              _giaLon(
+              _giaLonVuaKho(
                 giaGiamText(sp, cd),
-                coSo: 30,
+                // Giá giảm không chiếm quá 120px: dòng ngày hết hạn
+                // bên trái rộng ~130px, cộng lại vẫn vừa chiều rộng
+                // trong (giống hệt bản in PDF).
+                (_rongNoiDungXemTruoc - 16) / 2 - 8,
                 tiLe: tiLe,
                 fontMac: cd.fontChu,
               ),
@@ -439,18 +473,23 @@ class XemTruocMac extends StatelessWidget {
         children: [
           Expanded(
             // Tên dài thì xuống bao nhiêu dòng tùy ý, không bao
-            // giờ cắt chữ (cột tên hẹp, xem mẫu thường).
+            // giờ cắt chữ (cột tên hẹp, xem mẫu thường). Cỡ 15
+            // (thay vì 16): từ dài "ČOKOLÁDOVÉ" 16px không vừa cột
+            // tên 136px mà bị ngắt giữa từ; 15px thì vừa.
             child: _chu(
               tenSecHienThi(sp, cd),
-              co: 16 * tiLe,
+              co: 15 * tiLe,
               dam: cd.inChuDam,
               fontMac: cd.fontChu,
             ),
           ),
           const SizedBox(width: 8),
-          _giaLon(
+          // Giá không chiếm quá phần còn lại sau khi trừ cột tên
+          // (136px = 34mm — đủ cho từ dài "ČOKOLÁDOVÉ" 15px) và
+          // khoảng cách (8px): tên dài không bị ngắt giữa từ.
+          _giaLonVuaKho(
             giaChinhText(sp, cd),
-            coSo: 30,
+            _rongNoiDungXemTruoc - 20 - 136 - 8,
             tiLe: tiLe,
             fontMac: cd.fontChu,
           ),
@@ -560,7 +599,10 @@ class XemTruocMac extends StatelessWidget {
       padding: const EdgeInsets.all(4),
       child: Container(
         decoration: BoxDecoration(border: Border.all(width: 0.5)),
-        padding: const EdgeInsets.all(8),
+        // Đệm trong chỉ 4px (~1mm, thay vì 8px): khung đôi ăn nhiều
+        // chiều ngang nên cột tên hẹp — đệm 8px thì từ dài serif bị
+        // ngắt giữa từ, đệm 4px mới vừa (giống hệt bản in PDF).
+        padding: const EdgeInsets.all(4),
         child: Column(
           children: [
             Row(
@@ -672,15 +714,25 @@ class XemTruocMac extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 6),
-        RichText(
-          text: TextSpan(
-            style: const TextStyle(color: Colors.black),
-            children: [
-              spanTen(so, co: 19 * tiLe, damChu: true),
-              if (donViTien.isNotEmpty)
-                spanTen(' $donViTien', co: 13 * tiLe, damChu: dam),
-              spanTen(' $donVi', co: 13 * tiLe, damChu: dam),
-            ],
+        // Giá không chiếm quá phần còn lại sau khi trừ cột tên
+        // (120px = 30mm — đủ cho từ dài "ČOKOLÁDOVÉ" serif) và khoảng
+        // cách (6px): tên dài không bị ngắt giữa từ thành "ČOKOL /
+        // ÁDOVÉ" khi giá khoảng dài chiếm hết chiều rộng.
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 114),
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: RichText(
+              text: TextSpan(
+                style: const TextStyle(color: Colors.black),
+                children: [
+                  spanTen(so, co: 19 * tiLe, damChu: true),
+                  if (donViTien.isNotEmpty)
+                    spanTen(' $donViTien', co: 13 * tiLe, damChu: dam),
+                  spanTen(' $donVi', co: 13 * tiLe, damChu: dam),
+                ],
+              ),
+            ),
           ),
         ),
       ],

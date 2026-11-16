@@ -110,9 +110,13 @@ class CaiDat {
 
   /// Lề trái/phải mỗi bên khi in (mm): máy in nhiệt in được hẹp hơn
   /// khổ giấy nên nội dung phải thụt vào 2 bên, không vẽ ra hết khổ
-  /// (không là chữ ở mép bị máy cắt mất). Khổ 80mm thì chừa 3mm mỗi
-  /// bên, nội dung chiếm 74mm ở giữa; lề theo tỉ lệ khổ giấy đã chỉnh.
-  double get leTrangMm => rongMm * 3 / 80;
+  /// (không là chữ ở mép bị máy cắt mất). Đo từ bản in thật windows-7:
+  /// máy in của anh chủ cắt khoảng 4,7–5mm mỗi bên (khung Cổ điển ở
+  /// 4,5mm bị mất, tên Dải đen ở 5mm vẫn in được) nên lề 3mm cũ chưa
+  /// đủ — giờ chừa 6mm mỗi bên (khổ 80mm thì nội dung chiếm 68mm ở
+  /// giữa) để khung và chữ nằm hẳn trong vùng in được, còn dư ~1mm.
+  /// Lề theo tỉ lệ khổ giấy đã chỉnh.
+  double get leTrangMm => rongMm * 6 / 80;
 
   /// Chiều rộng nội dung sau khi trừ lề 2 bên (mm).
   double get rongNoiDungMm => rongMm - 2 * leTrangMm;
