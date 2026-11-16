@@ -6,6 +6,26 @@
 // cần nhập chiều cao nữa.
 import '../mau_mac/mau_mac.dart';
 
+/// Font chữ trên mác: Sans (không chân) hoặc Serif (có chân).
+/// Font đã chọn áp cho chữ chính của các mẫu; mẫu Cổ điển và
+/// Nhẹ nhàng thiết kế serif sẵn nên luôn giữ serif.
+enum FontMac {
+  sans,
+  serif;
+
+  String get tenHienThi => switch (this) {
+    FontMac.sans => 'Sans (không chân)',
+    FontMac.serif => 'Serif (có chân)',
+  };
+
+  static FontMac tuTen(String? ten) {
+    return FontMac.values.firstWhere(
+      (f) => f.name == ten,
+      orElse: () => FontMac.sans,
+    );
+  }
+}
+
 class CaiDat {
   /// Chiều rộng mác (mm). Mặc định 80 — cuộn giấy nhiệt 80mm.
   final double rongMm;
@@ -50,6 +70,10 @@ class CaiDat {
   /// vừa 1 dòng. Chỉ áp cho mẫu 8, các mẫu khác vẫn in dọc.
   final bool inNgangMau8;
 
+  /// Font chữ trên mác (Sans hoặc Serif). Áp cho chữ chính của
+  /// các mẫu; mẫu Cổ điển và Nhẹ nhàng luôn giữ serif.
+  final FontMac fontChu;
+
   /// Máy in mặc định (định danh url của máy in trong gói printing).
   /// Đặt 1 lần trong Cài đặt thì lần sau bấm in là in thẳng bằng máy
   /// này, không hiện hộp thoại chọn máy in mỗi lần. Chưa đặt hoặc
@@ -72,6 +96,7 @@ class CaiDat {
     this.inGiaKhongThue = false,
     this.tiLeChu = const {},
     this.inNgangMau8 = false,
+    this.fontChu = FontMac.sans,
     this.mayInMacDinh,
     this.tenMayInMacDinh,
   });
@@ -104,6 +129,7 @@ class CaiDat {
     bool? inGiaKhongThue,
     Map<String, double>? tiLeChu,
     bool? inNgangMau8,
+    FontMac? fontChu,
     String? mayInMacDinh,
     String? tenMayInMacDinh,
     // Đặt true để xóa máy in mặc định (vì truyền null vào
@@ -124,6 +150,7 @@ class CaiDat {
       inGiaKhongThue: inGiaKhongThue ?? this.inGiaKhongThue,
       tiLeChu: tiLeChu ?? this.tiLeChu,
       inNgangMau8: inNgangMau8 ?? this.inNgangMau8,
+      fontChu: fontChu ?? this.fontChu,
       mayInMacDinh: xoaMayInMacDinh
           ? null
           : (mayInMacDinh ?? this.mayInMacDinh),
@@ -146,6 +173,7 @@ class CaiDat {
     'inGiaKhongThue': inGiaKhongThue,
     'tiLeChu': tiLeChu,
     'inNgangMau8': inNgangMau8,
+    'fontChu': fontChu.name,
     'mayInMacDinh': mayInMacDinh,
     'tenMayInMacDinh': tenMayInMacDinh,
   };
@@ -166,6 +194,8 @@ class CaiDat {
       inGiaKhongThue: json['inGiaKhongThue'] as bool? ?? false,
       tiLeChu: _docTiLeChu(json['tiLeChu']),
       inNgangMau8: json['inNgangMau8'] as bool? ?? false,
+      // File cài đặt cũ chưa có khóa này thì mặc định Sans.
+      fontChu: FontMac.tuTen(json['fontChu'] as String?),
       mayInMacDinh: json['mayInMacDinh'] as String?,
       tenMayInMacDinh: json['tenMayInMacDinh'] as String?,
     );

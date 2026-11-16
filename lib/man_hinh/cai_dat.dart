@@ -7,6 +7,7 @@ import '../dieu_khien.dart';
 import '../firebase_options.dart';
 import '../giao_dien/chu_de.dart';
 import '../main.dart';
+import '../mo_hinh/cai_dat.dart';
 import '../tien_ich/may_in.dart';
 
 class ManHinhCaiDat extends StatefulWidget {
@@ -172,6 +173,40 @@ class _ManHinhCaiDatState extends State<ManHinhCaiDat> {
                     ],
                     const SizedBox(height: 12),
                     NutChinh('Lưu khổ mác', onTap: _luuKhoMac),
+                  ],
+                ),
+              ),
+              const TieuDeMuc('Font chữ'),
+              TheIOS(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Font cho chữ trên mác in. Mẫu Cổ điển và Nhẹ nhàng '
+                      'thiết kế serif sẵn nên luôn giữ serif.',
+                      style: TextStyle(fontSize: 14, color: mauChuPhu),
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownButton<FontMac>(
+                      value: dieuKhien.caiDat.fontChu,
+                      isExpanded: true,
+                      underline: const SizedBox(),
+                      items: FontMac.values
+                          .map(
+                            (f) => DropdownMenuItem(
+                              value: f,
+                              child: Text(f.tenHienThi),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (f) async {
+                        if (f != null) {
+                          await widget.dieuKhien.capNhatCaiDat(
+                            dieuKhien.caiDat.copyWith(fontChu: f),
+                          );
+                        }
+                      },
+                    ),
                   ],
                 ),
               ),

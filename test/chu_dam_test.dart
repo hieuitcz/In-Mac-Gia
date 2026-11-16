@@ -155,33 +155,47 @@ void main() {
     testWidgets('mẫu Nhẹ nhàng: tên, Kč, đơn vị theo công tắc; số luôn đậm', (
       tester,
     ) async {
-      // Lấy các đoạn chữ trong dòng RichText đầu tiên của mẫu 8.
-      List<TextSpan> layCacDoan(WidgetTester t) {
-        final tim = find.byWidgetPredicate(
-          (w) =>
-              w is RichText &&
-              w.text is TextSpan &&
-              (w.text as TextSpan).children != null &&
-              (w.text as TextSpan).children!.length == 4,
-        );
-        expect(tim, findsWidgets);
-        final dau = t.widget<RichText>(tim.first).text as TextSpan;
-        return dau.children!.cast<TextSpan>();
+      // Mỗi dòng Nhẹ nhàng là 1 Row: tên là Text riêng (Flexible),
+      // giá là RichText 3 đoạn: số, Kč, đơn vị. Tên dài thì xuống
+      // dòng 2 gọn gàng, phần giá luôn nằm gọn bên phải.
+      final sp = _sanPhamMau();
+      const cd = CaiDat();
+      final tenSec = tenSecHienThi(sp, cd);
+      final tenAnh = tenAnhHienThi(sp, cd);
+
+      // Lấy các đoạn giá (RichText có đúng 3 đoạn: số, Kč, đơn vị).
+      List<List<TextSpan>> layCacDoanGia(WidgetTester t) {
+        return t
+            .widgetList<RichText>(find.byType(RichText))
+            .map((r) => r.text as TextSpan)
+            .where(
+              (doan) => doan.children != null && doan.children!.length == 3,
+            )
+            .map((doan) => doan.children!.cast<TextSpan>())
+            .toList();
       }
 
       await _pumpXemTruoc(tester, mau: MauMac.songNguNheNhang, inChuDam: true);
-      final khiDam = layCacDoan(tester);
-      expect(khiDam[0].style!.fontWeight, FontWeight.bold); // tên
-      expect(khiDam[1].style!.fontWeight, FontWeight.bold); // số
-      expect(khiDam[2].style!.fontWeight, FontWeight.bold); // Kč
-      expect(khiDam[3].style!.fontWeight, FontWeight.bold); // đơn vị
+      expect(_doDamCuaChu(tester, tenSec), FontWeight.bold); // tên Séc
+      expect(_doDamCuaChu(tester, tenAnh), FontWeight.bold); // tên Anh
+      final khiDam = layCacDoanGia(tester);
+      expect(khiDam.length, 2);
+      for (final doan in khiDam) {
+        expect(doan[0].style!.fontWeight, FontWeight.bold); // số luôn đậm
+        expect(doan[1].style!.fontWeight, FontWeight.bold); // Kč
+        expect(doan[2].style!.fontWeight, FontWeight.bold); // đơn vị
+      }
 
       await _pumpXemTruoc(tester, mau: MauMac.songNguNheNhang, inChuDam: false);
-      final khiThuong = layCacDoan(tester);
-      expect(khiThuong[0].style!.fontWeight, FontWeight.normal); // tên
-      expect(khiThuong[1].style!.fontWeight, FontWeight.bold); // số luôn đậm
-      expect(khiThuong[2].style!.fontWeight, FontWeight.normal); // Kč
-      expect(khiThuong[3].style!.fontWeight, FontWeight.normal); // đơn vị
+      expect(_doDamCuaChu(tester, tenSec), FontWeight.normal); // tên Séc
+      expect(_doDamCuaChu(tester, tenAnh), FontWeight.normal); // tên Anh
+      final khiThuong = layCacDoanGia(tester);
+      expect(khiThuong.length, 2);
+      for (final doan in khiThuong) {
+        expect(doan[0].style!.fontWeight, FontWeight.bold); // số luôn đậm
+        expect(doan[1].style!.fontWeight, FontWeight.normal); // Kč
+        expect(doan[2].style!.fontWeight, FontWeight.normal); // đơn vị
+      }
     });
 
     testWidgets('chưa có mã vạch: dòng nhắc cũng theo công tắc', (

@@ -35,6 +35,8 @@ dependencies:
 
   # Đường dẫn lưu dữ liệu local (AppData trên Windows).
   path_provider: ^2.1.5
+  window_manager: ^0.5.2
+  screen_retriever: ^0.2.2
 
 # Ép phiên bản của các package gián tiếp (transitive).
 dependency_overrides:

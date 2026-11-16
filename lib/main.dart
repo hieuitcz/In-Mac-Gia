@@ -11,6 +11,7 @@ import 'dieu_khien.dart';
 import 'dong_bo/dong_bo_cloud.dart';
 import 'giao_dien/chu_de.dart';
 import 'luu_tru/kho_du_lieu.dart';
+import 'tien_ich/co_cua_so.dart';
 import 'man_hinh/man_hinh_chinh.dart';
 
 /// Số phiên bản hiện trong Cài đặt. CI truyền số bản qua
@@ -23,7 +24,7 @@ const String _soBan = String.fromEnvironment(
 /// Phiên bản app, ví dụ "1.0.12".
 String get phienBanApp => '1.0.$_soBan';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final kho = KhoDuLieu();
   // Lỗi chưa bắt thì ghi nhật ký rồi cho app chạy tiếp, không tắt app.
@@ -35,11 +36,16 @@ void main() {
     unawaited(kho.ghiNhatKy('Lỗi chưa bắt: $e'));
     return true;
   };
+  // Đọc cỡ màn hình trước để cửa sổ mở lên đã vừa màn hình
+  // (lỗi thì dùng 800×1024). Cửa sổ chỉ hiện sau khi đặt cỡ xong
+  // nên không mở to rồi mới co lại.
+  final coCuaSo = await docCoCuaSoVuaManHinh();
   runZonedGuarded(
     () {
       final dieuKhien = DieuKhienApp(kho: kho, dongBo: DongBoCloud());
       unawaited(dieuKhien.khoiDong());
       runApp(UngDung(dieuKhien: dieuKhien));
+      unawaited(hienCuaSoVuaManHinh(coCuaSo));
     },
     (e, s) {
       unawaited(kho.ghiNhatKy('Lỗi vùng chính: $e'));

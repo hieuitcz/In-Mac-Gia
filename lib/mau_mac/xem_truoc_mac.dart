@@ -45,7 +45,12 @@ class XemTruocMac extends StatelessWidget {
   }
 
   Widget _veMac(SanPham sp, MauMac mau, CaiDat cd, double tiLe) {
-    final mac = switch (mau) {
+    // Mẫu 8 in ngang: chữ viết theo chiều dọc (không phải dải tem
+    // nằm ngang) — xem _macSongNguNheNhangNgang.
+    if (mau == MauMac.songNguNheNhang && cd.inNgangMau8) {
+      return _macSongNguNheNhangNgang(sp, cd, tiLe);
+    }
+    return switch (mau) {
       MauMac.thuong => _macThuong(sp, cd, tiLe),
       MauMac.giamGia => _macGiamGia(sp, cd, tiLe),
       MauMac.gon => _macGon(sp, cd, tiLe),
@@ -55,14 +60,6 @@ class XemTruocMac extends StatelessWidget {
       MauMac.songNguCoDien => _macSongNguCoDien(sp, cd, tiLe),
       MauMac.songNguNheNhang => _macSongNguNheNhang(sp, cd, tiLe),
     };
-    // Mẫu 8 in ngang: xoay nội dung 90° để tên dài vừa 1 dòng,
-    // hiển thị đúng như bản in. Đường kẻ dưới tiêu đề không căng
-    // được theo chiều rộng vô hạn nên ở bản xem trước ngang nó
-    // không hiện (chỉ mất đường kẻ, nội dung vẫn đủ).
-    if (mau == MauMac.songNguNheNhang && cd.inNgangMau8) {
-      return RotatedBox(quarterTurns: 1, child: mac);
-    }
-    return mac;
   }
 
   // ---------- Hàm phụ dùng chung ----------
@@ -73,16 +70,20 @@ class XemTruocMac extends StatelessWidget {
     bool dam = false,
     bool serif = false,
     bool nghieng = false,
+    FontMac fontMac = FontMac.sans,
     TextAlign? can,
     double? khoangChu,
     TextDecoration? gach,
     Color? mau,
     int? toiDaDong,
   }) {
+    // Font đã chọn áp cho chữ chính; chữ serif (mẫu Cổ điển,
+    // Nhẹ nhàng) luôn giữ serif.
+    final dungSerif = serif || fontMac == FontMac.serif;
     return Text(
       text,
       style: TextStyle(
-        fontFamily: serif ? 'LiberationSerif' : 'LiberationSans',
+        fontFamily: dungSerif ? 'LiberationSerif' : 'LiberationSans',
         fontSize: co,
         fontWeight: dam ? FontWeight.bold : FontWeight.normal,
         fontStyle: nghieng ? FontStyle.italic : FontStyle.normal,
@@ -113,6 +114,7 @@ class XemTruocMac extends StatelessWidget {
     double coSo = 30,
     bool serif = false,
     double tiLe = 1.0,
+    FontMac fontMac = FontMac.sans,
   }) {
     final (so, donVi) = _tachGia(giaText);
     final co = coSo * tiLe;
@@ -120,11 +122,17 @@ class XemTruocMac extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        _chu(so, co: co, dam: true, serif: serif),
+        _chu(so, co: co, dam: true, serif: serif, fontMac: fontMac),
         const SizedBox(width: 3),
         Padding(
           padding: EdgeInsets.only(bottom: co * 0.12),
-          child: _chu(donVi, co: co * 0.45, dam: true, serif: serif),
+          child: _chu(
+            donVi,
+            co: co * 0.45,
+            dam: true,
+            serif: serif,
+            fontMac: fontMac,
+          ),
         ),
       ],
     );
@@ -136,13 +144,19 @@ class XemTruocMac extends StatelessWidget {
     required double cao,
     double tiLe = 1.0,
     bool dam = false,
+    FontMac fontMac = FontMac.sans,
   }) {
     if (!sp.coMaVachHopLe) {
       return SizedBox(
         width: rong,
         height: cao,
         child: Center(
-          child: _chu('Chưa có mã vạch', co: 9 * tiLe, dam: dam),
+          child: _chu(
+            'Chưa có mã vạch',
+            co: 9 * tiLe,
+            dam: dam,
+            fontMac: fontMac,
+          ),
         ),
       );
     }
@@ -167,13 +181,14 @@ class XemTruocMac extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        _giaLon(gia, coSo: 30, serif: serif, tiLe: tiLe),
+        _giaLon(gia, coSo: 30, serif: serif, tiLe: tiLe, fontMac: cd.fontChu),
         const SizedBox(height: 2),
         _chu(
           '/ks · /pc',
           co: 11 * tiLe,
           dam: cd.inChuDam,
           serif: serif,
+          fontMac: cd.fontChu,
           can: TextAlign.center,
         ),
       ],
@@ -199,8 +214,9 @@ class XemTruocMac extends StatelessWidget {
             co: 14 * tiLe,
             dam: cd.inChuDam,
             serif: serif,
+            fontMac: cd.fontChu,
             can: TextAlign.right,
-            toiDaDong: 1,
+            toiDaDong: 2,
           ),
         ),
         const SizedBox(width: 12),
@@ -212,9 +228,10 @@ class XemTruocMac extends StatelessWidget {
             co: 13 * tiLe,
             dam: cd.inChuDam,
             serif: serif,
+            fontMac: cd.fontChu,
             nghieng: !cd.inChuDam,
             can: TextAlign.left,
-            toiDaDong: 1,
+            toiDaDong: 2,
           ),
         ),
       ],
@@ -240,11 +257,14 @@ class XemTruocMac extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Tên dài thì xuống bao nhiêu dòng tùy ý, không bao
+                // giờ cắt chữ: cột tên ở đây hẹp (giá lớn chiếm chỗ),
+                // tên rất dài mà giới hạn 2 dòng thì mất chữ.
                 _chu(
                   tenSecHienThi(sp, cd),
                   co: 15 * tiLe,
                   dam: cd.inChuDam,
-                  toiDaDong: 2,
+                  fontMac: cd.fontChu,
                 ),
                 const SizedBox(height: 8),
                 if (cd.inMaVach)
@@ -257,12 +277,14 @@ class XemTruocMac extends StatelessWidget {
                         cao: 36,
                         tiLe: tiLe,
                         dam: cd.inChuDam,
+                        fontMac: cd.fontChu,
                       ),
                       if (sp.coMaVachHopLe)
                         _chu(
                           dinhDangSoMaVach(sp.maVach),
                           co: 9 * tiLe,
                           dam: cd.inChuDam,
+                          fontMac: cd.fontChu,
                         ),
                     ],
                   ),
@@ -274,10 +296,26 @@ class XemTruocMac extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              _giaLon(giaChinhText(sp, cd), coSo: 30, tiLe: tiLe),
+              _giaLon(
+                giaChinhText(sp, cd),
+                coSo: 30,
+                tiLe: tiLe,
+                fontMac: cd.fontChu,
+              ),
               if (khoiLuong != null)
-                _chu(khoiLuong, co: 10 * tiLe, dam: cd.inChuDam),
-              if (donGia != null) _chu(donGia, co: 10 * tiLe, dam: cd.inChuDam),
+                _chu(
+                  khoiLuong,
+                  co: 10 * tiLe,
+                  dam: cd.inChuDam,
+                  fontMac: cd.fontChu,
+                ),
+              if (donGia != null)
+                _chu(
+                  donGia,
+                  co: 10 * tiLe,
+                  dam: cd.inChuDam,
+                  fontMac: cd.fontChu,
+                ),
             ],
           ),
         ],
@@ -306,16 +344,19 @@ class XemTruocMac extends StatelessWidget {
                   co: 11 * tiLe,
                   dam: true,
                   khoangChu: 2,
+                  fontMac: cd.fontChu,
                   mau: Colors.white,
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
+                // Tên dài thì xuống bao nhiêu dòng tùy ý, không bao
+                // giờ cắt chữ (cột tên hẹp, xem mẫu thường).
                 child: _chu(
                   tenSecHienThi(sp, cd),
                   co: 15 * tiLe,
                   dam: cd.inChuDam,
-                  toiDaDong: 1,
+                  fontMac: cd.fontChu,
                 ),
               ),
             ],
@@ -333,12 +374,24 @@ class XemTruocMac extends StatelessWidget {
                       giaCu,
                       co: 13 * tiLe,
                       dam: cd.inChuDam,
+                      fontMac: cd.fontChu,
                       gach: TextDecoration.lineThrough,
                     ),
-                  if (han != null) _chu(han, co: 10 * tiLe, dam: cd.inChuDam),
+                  if (han != null)
+                    _chu(
+                      han,
+                      co: 10 * tiLe,
+                      dam: cd.inChuDam,
+                      fontMac: cd.fontChu,
+                    ),
                 ],
               ),
-              _giaLon(giaGiamText(sp, cd), coSo: 30, tiLe: tiLe),
+              _giaLon(
+                giaGiamText(sp, cd),
+                coSo: 30,
+                tiLe: tiLe,
+                fontMac: cd.fontChu,
+              ),
             ],
           ),
         ],
@@ -353,15 +406,22 @@ class XemTruocMac extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Expanded(
+            // Tên dài thì xuống bao nhiêu dòng tùy ý, không bao
+            // giờ cắt chữ (cột tên hẹp, xem mẫu thường).
             child: _chu(
               tenSecHienThi(sp, cd),
               co: 16 * tiLe,
               dam: cd.inChuDam,
-              toiDaDong: 2,
+              fontMac: cd.fontChu,
             ),
           ),
           const SizedBox(width: 8),
-          _giaLon(giaChinhText(sp, cd), coSo: 30, tiLe: tiLe),
+          _giaLon(
+            giaChinhText(sp, cd),
+            coSo: 30,
+            tiLe: tiLe,
+            fontMac: cd.fontChu,
+          ),
         ],
       ),
     );
@@ -377,12 +437,25 @@ class XemTruocMac extends StatelessWidget {
             tenSecHienThi(sp, cd),
             co: 11 * tiLe,
             dam: cd.inChuDam,
-            toiDaDong: 1,
+            fontMac: cd.fontChu,
+            toiDaDong: 2,
           ),
           const SizedBox(height: 4),
-          _maVach(sp, rong: 240, cao: 52, tiLe: tiLe, dam: cd.inChuDam),
+          _maVach(
+            sp,
+            rong: 240,
+            cao: 52,
+            tiLe: tiLe,
+            dam: cd.inChuDam,
+            fontMac: cd.fontChu,
+          ),
           if (sp.coMaVachHopLe)
-            _chu(dinhDangSoMaVach(sp.maVach), co: 11 * tiLe, dam: cd.inChuDam),
+            _chu(
+              dinhDangSoMaVach(sp.maVach),
+              co: 11 * tiLe,
+              dam: cd.inChuDam,
+              fontMac: cd.fontChu,
+            ),
         ],
       ),
     );
@@ -395,7 +468,13 @@ class XemTruocMac extends StatelessWidget {
         children: [
           Align(
             alignment: Alignment.centerLeft,
-            child: _chu('CENA / PRICE', co: 11 * tiLe, dam: true, khoangChu: 2),
+            child: _chu(
+              'CENA / PRICE',
+              co: 11 * tiLe,
+              dam: true,
+              khoangChu: 2,
+              fontMac: cd.fontChu,
+            ),
           ),
           const SizedBox(height: 4),
           Container(height: 1, color: Colors.black),
@@ -421,6 +500,7 @@ class XemTruocMac extends StatelessWidget {
               co: 11 * tiLe,
               dam: true,
               khoangChu: 3,
+              fontMac: cd.fontChu,
               mau: Colors.white,
             ),
           ),
@@ -440,7 +520,10 @@ class XemTruocMac extends StatelessWidget {
   }
 
   Widget _macSongNguCoDien(SanPham sp, CaiDat cd, double tiLe) {
+    // Khung đôi thụt vào 6px (~1,5mm) quanh khung ngoài: khung dính
+    // mép khung xem trước sẽ mất 1 đoạn kẻ phải.
     return Container(
+      margin: const EdgeInsets.all(6),
       decoration: BoxDecoration(border: Border.all(width: 1.5)),
       padding: const EdgeInsets.all(4),
       child: Container(
@@ -516,6 +599,9 @@ class XemTruocMac extends StatelessWidget {
   /// chữ "Kč" giữ nhỏ như tên (13), đơn vị nhỏ như tên (13).
   /// Tên, chữ "Kč" và đơn vị theo công tắc in đậm; PHẦN SỐ luôn đậm
   /// vì đó là giá (cùng nguyên tắc như _giaLon ở các mẫu khác).
+  /// Tên dài thì xuống dòng 2 gọn gàng (tối đa 2 dòng, ngắt từ đẹp):
+  /// tên nằm trong Flexible nên chỉ chiếm chiều rộng còn lại, phần giá
+  /// luôn nằm gọn bên phải, không bao giờ bị cắt mất.
   Widget _dongNheNhang(
     String ten,
     String gia,
@@ -524,44 +610,129 @@ class XemTruocMac extends StatelessWidget {
     bool dam = false,
   }) {
     final (so, donViTien) = _tachGia(gia);
-    return RichText(
-      maxLines: 2,
-      overflow: TextOverflow.ellipsis,
-      text: TextSpan(
-        style: const TextStyle(color: Colors.black),
+    TextSpan spanTen(String text, {required double co, bool damChu = false}) {
+      return TextSpan(
+        text: text,
+        style: TextStyle(
+          fontFamily: 'LiberationSerif',
+          fontSize: co,
+          fontWeight: damChu ? FontWeight.bold : FontWeight.normal,
+        ),
+      );
+    }
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Flexible(
+          child: Text(
+            ten,
+            style: TextStyle(
+              fontFamily: 'LiberationSerif',
+              fontSize: 13 * tiLe,
+              fontWeight: dam ? FontWeight.bold : FontWeight.normal,
+              color: Colors.black,
+              height: 1.15,
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        const SizedBox(width: 6),
+        RichText(
+          text: TextSpan(
+            style: const TextStyle(color: Colors.black),
+            children: [
+              spanTen(so, co: 19 * tiLe, damChu: true),
+              if (donViTien.isNotEmpty)
+                spanTen(' $donViTien', co: 13 * tiLe, damChu: dam),
+              spanTen(' $donVi', co: 13 * tiLe, damChu: dam),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Song ngữ – Nhẹ nhàng, in ngang (mẫu 8): VẪN KHỔ DỌC 80mm
+  /// (dải tem đứng), nhưng CHỮ VIẾT THEO CHIỀU DỌC — chữ xoay 90°
+  /// ngược chiều kim đồng hồ, đọc từ dưới lên trên. Cột "CENA / PRICE"
+  /// ở bên phải, 2 dòng sản phẩm (tiếng Anh rồi tiếng Séc) là các cột
+  /// đứng bên trái nó, có vạch chia dọc giữa các cột, khung viền mỏng
+  /// bao ngoài. Xoay tem 90° theo chiều kim đồng hồ để đọc thì thành:
+  /// tiêu đề "CENA / PRICE" ở trên cùng, dưới nó là 1 đường gạch ngang
+  /// (chính là vạch chia dọc bên cạnh cột tiêu đề), rồi đến các dòng
+  /// sản phẩm. Giá vẫn dạng gạch ngang "100 – 250 Kč", số to + Kč nhỏ
+  /// như đã chốt. Dùng Table 1 hàng × 3 cột, mỗi ô xoay nội dung
+  /// của mình (RotatedBox quarterTurns 3 = 90° ngược chiều kim đồng
+  /// hồ); vạch chia dọc là border verticalInside của bảng.
+  Widget _macSongNguNheNhangNgang(SanPham sp, CaiDat cd, double tiLe) {
+    final giaSec = giaChinhText(sp, cd);
+    final giaAnh = giaChinhText(sp, cd, tiengAnh: true);
+
+    // 1 cột dọc: xoay nội dung -90° (đọc từ dưới lên trên), căn giữa
+    // trong cột. Ô bảng được layout với chiều rộng cố định bằng chiều
+    // rộng cột nên Center căn ngang được; căn dọc giữa hàng do
+    // defaultVerticalAlignment của bảng.
+    Widget cotDoc(Widget dong) {
+      // Đệm dọc 12px (~3mm) mỗi đầu: dòng dài nhất chạm sát khung
+      // trên/dưới nếu không có đệm này.
+      return Center(
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: RotatedBox(quarterTurns: 3, child: dong),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.all(6),
+      child: Table(
+        columnWidths: const {
+          0: FlexColumnWidth(1),
+          1: FlexColumnWidth(1),
+          2: FlexColumnWidth(1.25),
+        },
+        border: TableBorder(
+          top: const BorderSide(width: 0.5),
+          left: const BorderSide(width: 0.5),
+          right: const BorderSide(width: 0.5),
+          bottom: const BorderSide(width: 0.5),
+          verticalInside: const BorderSide(width: 0.5),
+        ),
+        defaultVerticalAlignment: TableCellVerticalAlignment.middle,
         children: [
-          TextSpan(
-            text: '$ten ',
-            style: TextStyle(
-              fontFamily: 'LiberationSerif',
-              fontSize: 13 * tiLe,
-              fontWeight: dam ? FontWeight.bold : FontWeight.normal,
-            ),
-          ),
-          TextSpan(
-            text: so,
-            style: TextStyle(
-              fontFamily: 'LiberationSerif',
-              fontSize: 19 * tiLe,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          if (donViTien.isNotEmpty)
-            TextSpan(
-              text: ' $donViTien',
-              style: TextStyle(
-                fontFamily: 'LiberationSerif',
-                fontSize: 13 * tiLe,
-                fontWeight: dam ? FontWeight.bold : FontWeight.normal,
+          TableRow(
+            children: [
+              cotDoc(
+                _dongNheNhang(
+                  tenAnhHienThi(sp, cd),
+                  giaAnh,
+                  '/ pc',
+                  tiLe,
+                  dam: cd.inChuDam,
+                ),
               ),
-            ),
-          TextSpan(
-            text: ' $donVi',
-            style: TextStyle(
-              fontFamily: 'LiberationSerif',
-              fontSize: 13 * tiLe,
-              fontWeight: dam ? FontWeight.bold : FontWeight.normal,
-            ),
+              cotDoc(
+                _dongNheNhang(
+                  tenSecHienThi(sp, cd),
+                  giaSec,
+                  '/ ks',
+                  tiLe,
+                  dam: cd.inChuDam,
+                ),
+              ),
+              cotDoc(
+                _chu(
+                  'CENA / PRICE',
+                  co: 12 * tiLe,
+                  dam: true,
+                  serif: true,
+                  khoangChu: 1,
+                ),
+              ),
+            ],
           ),
         ],
       ),

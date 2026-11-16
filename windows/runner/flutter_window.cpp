@@ -28,7 +28,10 @@ bool FlutterWindow::OnCreate() {
   SetChildContent(flutter_controller_->view()->GetNativeWindow());
 
   flutter_controller_->engine()->SetNextFrameCallback([&]() {
-    this->Show();
+    // Không tự hiện cửa sổ ở cỡ mặc định 1280×720 nữa: cửa sổ do
+    // window_manager hiện sau khi đặt cỡ vừa màn hình (xem
+    // lib/tien_ich/co_cua_so.dart). Cửa sổ tạo ra đã ẩn sẵn
+    // (không có WS_VISIBLE) nên không chớp to rồi mới co lại.
   });
 
   // Flutter can complete the first frame before the "show window" callback is
