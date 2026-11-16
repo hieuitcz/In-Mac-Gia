@@ -67,4 +67,24 @@ class KhoDuLieu {
     await tep.create(recursive: true);
     await tep.writeAsString(jsonEncode(caiDat.toJson()));
   }
+
+  /// File nhật ký khởi động (ghi lỗi mở app để lần sau có bằng chứng).
+  Future<File> get tepNhatKy async =>
+      File('${(await _thuMuc).path}/nhat-ky-khoi-dong.log');
+
+  /// Đường dẫn file nhật ký để hiện trong Cài đặt.
+  Future<String> get duongDanNhatKy async => (await tepNhatKy).path;
+
+  /// Ghi 1 dòng vào nhật ký khởi động (kèm giờ). Lỗi ghi log thì thôi,
+  /// không bao giờ ném lỗi ra ngoài để khỏi làm app tắt theo.
+  Future<void> ghiNhatKy(String dong) async {
+    try {
+      final tep = await tepNhatKy;
+      await tep.create(recursive: true);
+      final gio = DateTime.now().toIso8601String();
+      await tep.writeAsString('[$gio] $dong\n', mode: FileMode.append);
+    } catch (_) {
+      // Ghi log lỗi thì thôi.
+    }
+  }
 }

@@ -24,18 +24,34 @@ class DieuKhienApp extends ChangeNotifier {
   DieuKhienApp({required this.kho, required this.dongBo});
 
   /// Mở app: đọc local trước cho nhanh, rồi đồng bộ cloud ở nền.
+  /// Lỗi ở bất kỳ bước nào cũng không làm app tắt: bước nào lỗi thì
+  /// ghi nhật ký rồi chạy tiếp offline, app vẫn mở bình thường.
   Future<void> khoiDong() async {
-    sanPham = await kho.docSanPham();
-    caiDat = await kho.docCaiDat();
+    await kho.ghiNhatKy('Mở app.');
+    try {
+      sanPham = await kho.docSanPham();
+      caiDat = await kho.docCaiDat();
+    } catch (e) {
+      await kho.ghiNhatKy('Lỗi đọc dữ liệu local: $e — dùng danh sách rỗng.');
+      sanPham = [];
+      caiDat = const CaiDat();
+    }
     dangTai = false;
     notifyListeners();
-    final ketNoiDuoc = await dongBo.khoiTao();
-    if (ketNoiDuoc) {
-      sanPham = await dongBo.dongBo(sanPham);
-      await kho.luuSanPham(sanPham);
+    try {
+      final ketNoiDuoc = await dongBo.khoiTao();
+      if (ketNoiDuoc) {
+        sanPham = await dongBo.dongBo(sanPham);
+        await kho.luuSanPham(sanPham);
+      }
+    } catch (e) {
+      await kho.ghiNhatKy('Lỗi đồng bộ cloud: $e — chạy offline.');
     }
     trangThaiDongBo = dongBo.lyDo;
     notifyListeners();
+    await kho.ghiNhatKy(
+      'Khởi động xong: ${sanPham.length} sản phẩm. $trangThaiDongBo',
+    );
   }
 
   /// Đồng bộ ngay khi người dùng bấm nút.

@@ -2,7 +2,10 @@
 // công tắc như trên phần mềm cũ, xem trước đúng khổ thật rồi mới in.
 // In hàng loạt: tick nhiều sản phẩm ở màn hình chính, nhập số lượng
 // từng loại rồi in 1 lần.
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
+import 'package:pdf/pdf.dart';
 import 'package:printing/printing.dart';
 
 import '../dieu_khien.dart';
@@ -12,6 +15,7 @@ import '../mau_mac/ve_mac_pdf.dart';
 import '../mau_mac/xem_truoc_mac.dart';
 import '../mo_hinh/cai_dat.dart';
 import '../mo_hinh/san_pham.dart';
+import '../tien_ich/may_in.dart';
 
 class ManHinhIn extends StatefulWidget {
   final DieuKhienApp dieuKhien;
@@ -60,7 +64,12 @@ class _ManHinhInState extends State<ManHinhIn> {
     await widget.dieuKhien.capNhatCaiDat(moi);
   }
 
-  Future<void> _inMac() async {
+  /// In mác: nếu đã đặt máy in mặc định thì in thẳng bằng máy đó,
+  /// không hiện hộp thoại chọn máy in mỗi lần. Chưa đặt mặc định,
+  /// máy in mặc định không còn, hoặc in thẳng lỗi thì hiện hộp thoại
+  /// chọn máy in như cũ. Nút "Chọn máy in khác" gọi với
+  /// chonMayInKhac = true để luôn hiện hộp thoại.
+  Future<void> _inMac({bool chonMayInKhac = false}) async {
     if (_dangIn) return;
     setState(() => _dangIn = true);
     try {
@@ -68,11 +77,35 @@ class _ManHinhInState extends State<ManHinhIn> {
           .map((sp) => (sanPham: sp, soLuong: _soLuong[sp.id] ?? 1))
           .toList();
       final taiLieu = await taoTaiLieuMac(mucIn: mucIn, caiDat: _caiDat);
-      final daIn = await Printing.layoutPdf(
-        onLayout: (_) async => taiLieu.save(),
-        format: khoGiayMac(_caiDat),
-        name: 'Mac gia',
-      );
+      final khoGiay = khoGiayMac(_caiDat);
+      Future<Uint8List> inTaiLieu(PdfPageFormat _) => taiLieu.save();
+      var daIn = false;
+      var inThang = false;
+      if (!chonMayInKhac) {
+        final mayIn = await timMayInMacDinh(_caiDat.mayInMacDinh);
+        if (mayIn != null) {
+          try {
+            daIn = await Printing.directPrintPdf(
+              printer: mayIn,
+              onLayout: inTaiLieu,
+              format: khoGiay,
+              name: 'Mac gia',
+            );
+            // Chỉ bỏ qua hộp thoại khi in thẳng gửi được lệnh;
+            // in thẳng lỗi thì rơi xuống hộp thoại bên dưới.
+            inThang = daIn;
+          } catch (_) {
+            inThang = false;
+          }
+        }
+      }
+      if (!inThang) {
+        daIn = await Printing.layoutPdf(
+          onLayout: inTaiLieu,
+          format: khoGiay,
+          name: 'Mac gia',
+        );
+      }
       if (mounted && daIn) {
         ScaffoldMessenger.of(
           context,
@@ -131,6 +164,18 @@ class _ManHinhInState extends State<ManHinhIn> {
                       cd.mauMac.moTa,
                       style: const TextStyle(fontSize: 13, color: mauChuPhu),
                     ),
+                    if (mau == MauMac.songNguNheNhang) ...[
+                      const SizedBox(height: 8),
+                      HangCongTac(
+                        tieuDe: 'In ngang',
+                        moTa:
+                            'Xoay mẫu Nhẹ nhàng ngang 90° để tên dài vừa '
+                            '1 dòng.',
+                        giaTri: cd.inNgangMau8,
+                        onChanged: (v) =>
+                            _doiCaiDat(cd.copyWith(inNgangMau8: v)),
+                      ),
+                    ],
                     const SizedBox(height: 16),
                     Row(
                       children: [
@@ -331,13 +376,23 @@ class _ManHinhInState extends State<ManHinhIn> {
               const SizedBox(height: 8),
               NutChinh(
                 _dangIn ? 'Đang in...' : 'In $_tongSoMac mác',
-                onTap: _dangIn ? null : _inMac,
+                onTap: _dangIn ? null : () => _inMac(),
               ),
               const SizedBox(height: 8),
-              const Text(
-                'Chọn máy in nhãn nhiệt trong hộp thoại in hiện ra.',
+              if (cd.mayInMacDinh != null)
+                TextButton(
+                  onPressed: _dangIn ? null : () => _inMac(chonMayInKhac: true),
+                  child: const Text('Chọn máy in khác'),
+                ),
+              Text(
+                cd.mayInMacDinh != null
+                    ? 'In thẳng bằng máy in ${cd.tenMayInMacDinh ?? ''}. '
+                          'Đổi máy in mặc định trong Cài đặt.'
+                    : 'Chọn máy in nhãn nhiệt trong hộp thoại in hiện ra. '
+                          'Đặt máy in mặc định trong Cài đặt để lần sau '
+                          'in thẳng.',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 13, color: mauChuPhu),
+                style: const TextStyle(fontSize: 13, color: mauChuPhu),
               ),
             ],
           ),

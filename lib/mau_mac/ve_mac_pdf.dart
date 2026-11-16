@@ -11,6 +11,8 @@
 // chỉnh được 70%–130% trong màn hình in). Tỉ lệ chỉ nhân vào cỡ chữ,
 // không nhân vào kích thước mã vạch (mã vạch phải giữ đúng kích thước
 // để máy quét đọc được).
+import 'dart:math' as math;
+
 import 'package:barcode/barcode.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -70,24 +72,32 @@ MauMac mauThucTe(SanPham sp, CaiDat cd) {
 
 pw.Widget _veMac(SanPham sp, MauMac mau, CaiDat cd) {
   final tiLe = cd.tiLeChuCua(mau);
-  switch (mau) {
-    case MauMac.thuong:
-      return _macThuong(sp, cd, tiLe);
-    case MauMac.giamGia:
-      return _macGiamGia(sp, cd, tiLe);
-    case MauMac.gon:
-      return _macGon(sp, cd, tiLe);
-    case MauMac.chiMaVach:
-      return _macChiMaVach(sp, cd, tiLe);
-    case MauMac.songNguHienDai:
-      return _macSongNguHienDai(sp, cd, tiLe);
-    case MauMac.songNguDaiDen:
-      return _macSongNguDaiDen(sp, cd, tiLe);
-    case MauMac.songNguCoDien:
-      return _macSongNguCoDien(sp, cd, tiLe);
-    case MauMac.songNguNheNhang:
-      return _macSongNguNheNhang(sp, cd, tiLe);
+  final mac = switch (mau) {
+    MauMac.thuong => _macThuong(sp, cd, tiLe),
+    MauMac.giamGia => _macGiamGia(sp, cd, tiLe),
+    MauMac.gon => _macGon(sp, cd, tiLe),
+    MauMac.chiMaVach => _macChiMaVach(sp, cd, tiLe),
+    MauMac.songNguHienDai => _macSongNguHienDai(sp, cd, tiLe),
+    MauMac.songNguDaiDen => _macSongNguDaiDen(sp, cd, tiLe),
+    MauMac.songNguCoDien => _macSongNguCoDien(sp, cd, tiLe),
+    MauMac.songNguNheNhang => _macSongNguNheNhang(sp, cd, tiLe),
+  };
+  // Mẫu 8 in ngang: xoay nội dung 90° để tên dài vừa 1 dòng.
+  // Khổ trang vẫn là cuộn rộng 80mm (chiều cao của dải tem ngang),
+  // chiều dài dải tem tự theo nội dung, máy in tự cắt.
+  // rotateBox với unconstrained: true layout nội dung với chiều rộng
+  // vô hạn (mỗi dòng tên + giá nằm gọn 1 dòng) rồi mới xoay khung;
+  // đường kẻ dưới tiêu đề không căng được theo chiều rộng vô hạn
+  // nên ở bản in ngang nó không hiện (chỉ mất đường kẻ, nội dung
+  // vẫn đủ). Chỉ áp cho mẫu 8, các mẫu khác vẫn in dọc.
+  if (mau == MauMac.songNguNheNhang && cd.inNgangMau8) {
+    return pw.Transform.rotateBox(
+      angle: math.pi / 2,
+      unconstrained: true,
+      child: mac,
+    );
   }
+  return mac;
 }
 
 // ---------- Hàm phụ dùng chung ----------
@@ -138,7 +148,11 @@ pw.Widget _chu(
   return (giaText.substring(0, viTri), giaText.substring(viTri + 1));
 }
 
-/// Giá lớn: số to, đơn vị "Kč" nhỏ hơn, căn cuối dòng.
+/// Giá lớn: số to, chữ "Kč" bằng khoảng 45% cỡ số (ví dụ số 26 thì
+/// Kč khoảng 12), vẫn nhỏ hơn số rõ rệt, căn đáy ở góc dưới phải
+/// của số. Dùng cho giá lớn ở mẫu thường, giảm giá, gọn và 3 kiểu
+/// song ngữ; mẫu Nhẹ nhàng không dùng hàm này (Kč ở đó giữ nhỏ
+/// như tên).
 pw.Widget _giaLon(
   String giaText, {
   double coSo = 26,
@@ -161,18 +175,22 @@ pw.Widget _giaLon(
   );
 }
 
-/// Mã vạch EAN-13 vẽ thật. Chưa có mã hợp lệ thì hiện dòng chữ nhắc.
+/// Mã vạch EAN-13 vẽ thật. Chưa có mã hợp lệ thì hiện dòng chữ nhắc
+/// (dòng nhắc này cũng theo công tắc in đậm như các chữ phụ khác).
 pw.Widget _maVach(
   SanPham sp, {
   required double rong,
   required double cao,
   double tiLe = 1.0,
+  bool dam = false,
 }) {
   if (!sp.coMaVachHopLe) {
     return pw.SizedBox(
       width: rong,
       height: cao,
-      child: pw.Center(child: _chu('Chưa có mã vạch', co: 7 * tiLe)),
+      child: pw.Center(
+        child: _chu('Chưa có mã vạch', co: 7 * tiLe, dam: dam),
+      ),
     );
   }
   return pw.BarcodeWidget(
@@ -194,7 +212,10 @@ pw.Widget _vachChiaDoc({double cao = 12}) {
   return pw.Container(width: 0.5, height: cao, color: PdfColors.black);
 }
 
-/// Giá song ngữ hiện 1 lần: "od 70 do 100 Kč" + " /ks · /pc" nhỏ hơn.
+/// Giá song ngữ hiện 1 lần, bố cục 2 dòng:
+/// - Dòng 1: số giá TO, chữ "Kč" nhỏ đặt ở góc dưới phải của số
+///   (kiểu _giaLon: số to, Kč nhỏ căn đáy).
+/// - Dòng 2: "/ks · /pc" nhỏ, căn giữa, nằm dưới dòng giá.
 pw.Widget _giaSongNguMotLan(
   SanPham sp,
   CaiDat cd, {
@@ -202,32 +223,27 @@ pw.Widget _giaSongNguMotLan(
   double tiLe = 1.0,
 }) {
   final gia = giaChinhText(sp, cd);
-  return pw.RichText(
-    textAlign: pw.TextAlign.center,
-    text: pw.TextSpan(
-      children: [
-        pw.TextSpan(
-          text: gia,
-          style: pw.TextStyle(
-            font: _phongChu(serif: serif, dam: true),
-            fontSize: 19 * tiLe,
-            color: PdfColors.black,
-          ),
-        ),
-        pw.TextSpan(
-          text: ' /ks · /pc',
-          style: pw.TextStyle(
-            font: _phongChu(serif: serif, dam: false),
-            fontSize: 10 * tiLe,
-            color: PdfColors.black,
-          ),
-        ),
-      ],
-    ),
+  return pw.Column(
+    crossAxisAlignment: pw.CrossAxisAlignment.center,
+    children: [
+      _giaLon(gia, coSo: 28, serif: serif, tiLe: tiLe),
+      pw.SizedBox(height: 1 * PdfPageFormat.mm),
+      _chu(
+        '/ks · /pc',
+        co: 10 * tiLe,
+        dam: cd.inChuDam,
+        serif: serif,
+        can: pw.TextAlign.center,
+      ),
+    ],
   );
 }
 
 /// Hàng 2 tên song song, có vạch chia ở giữa (3 kiểu song ngữ giá 1 lần).
+/// Tên Séc theo công tắc in đậm. Tên Anh in nghiêng khi tắt đậm;
+/// khi bật đậm thì in đậm thẳng (không nghiêng) vì font Liberation
+/// đóng gói không có file đậm-nghiêng nên PDF không vẽ được chữ
+/// vừa đậm vừa nghiêng.
 pw.Widget _haiTenSongSong(
   SanPham sp,
   CaiDat cd, {
@@ -254,8 +270,9 @@ pw.Widget _haiTenSongSong(
         child: _chu(
           tenAnhHienThi(sp, cd),
           co: 11 * tiLe,
+          dam: cd.inChuDam,
           serif: serif,
-          nghieng: true,
+          nghieng: !cd.inChuDam,
           can: pw.TextAlign.left,
           toiDaDong: 1,
         ),
@@ -299,9 +316,14 @@ pw.Widget _macThuong(SanPham sp, CaiDat cd, double tiLe) {
                       rong: 32 * PdfPageFormat.mm,
                       cao: 9 * PdfPageFormat.mm,
                       tiLe: tiLe,
+                      dam: cd.inChuDam,
                     ),
                     if (sp.coMaVachHopLe)
-                      _chu(dinhDangSoMaVach(sp.maVach), co: 7 * tiLe),
+                      _chu(
+                        dinhDangSoMaVach(sp.maVach),
+                        co: 7 * tiLe,
+                        dam: cd.inChuDam,
+                      ),
                   ],
                 ),
             ],
@@ -312,8 +334,9 @@ pw.Widget _macThuong(SanPham sp, CaiDat cd, double tiLe) {
           crossAxisAlignment: pw.CrossAxisAlignment.end,
           children: [
             _giaLon(giaChinhText(sp, cd), coSo: 26, tiLe: tiLe),
-            if (khoiLuong != null) _chu(khoiLuong, co: 8 * tiLe),
-            if (donGia != null) _chu(donGia, co: 8 * tiLe),
+            if (khoiLuong != null)
+              _chu(khoiLuong, co: 8 * tiLe, dam: cd.inChuDam),
+            if (donGia != null) _chu(donGia, co: 8 * tiLe, dam: cd.inChuDam),
           ],
         ),
       ],
@@ -370,9 +393,10 @@ pw.Widget _macGiamGia(SanPham sp, CaiDat cd, double tiLe) {
                   _chu(
                     giaCu,
                     co: 11 * tiLe,
+                    dam: cd.inChuDam,
                     gach: pw.TextDecoration.lineThrough,
                   ),
-                if (han != null) _chu(han, co: 8 * tiLe),
+                if (han != null) _chu(han, co: 8 * tiLe, dam: cd.inChuDam),
               ],
             ),
             _giaLon(giaGiamText(sp, cd), coSo: 26, tiLe: tiLe),
@@ -428,8 +452,10 @@ pw.Widget _macChiMaVach(SanPham sp, CaiDat cd, double tiLe) {
           rong: 60 * PdfPageFormat.mm,
           cao: 13 * PdfPageFormat.mm,
           tiLe: tiLe,
+          dam: cd.inChuDam,
         ),
-        if (sp.coMaVachHopLe) _chu(dinhDangSoMaVach(sp.maVach), co: 9 * tiLe),
+        if (sp.coMaVachHopLe)
+          _chu(dinhDangSoMaVach(sp.maVach), co: 9 * tiLe, dam: cd.inChuDam),
       ],
     ),
   );
@@ -532,8 +558,10 @@ pw.Widget _macSongNguCoDien(SanPham sp, CaiDat cd, double tiLe) {
 
 /// Song ngữ – Nhẹ nhàng (mẫu số 6): theo đúng ảnh gốc — tiêu đề
 /// "CENA / PRICE" chữ serif, 2 dòng, mỗi dòng 1 ngôn ngữ kèm luôn
-/// giá của dòng đó. Khung viền mỏng, nhiều khoảng trắng, giá không to.
-/// Mẫu này chỉnh được cỡ chữ (70%–130%) để tên/giá dài vẫn vừa 1 dòng.
+/// giá của dòng đó. Khung viền mỏng, nhiều khoảng trắng.
+/// Số tiền TO hơn tên (tên 11pt, số tiền 16pt đậm), đơn vị "/ ks"
+/// và "/ pc" giữ nhỏ như tên. Tên, chữ "Kč" và đơn vị theo công tắc
+/// in đậm; số tiền luôn đậm vì đó là giá.
 pw.Widget _macSongNguNheNhang(SanPham sp, CaiDat cd, double tiLe) {
   final giaSec = giaChinhText(sp, cd);
   final giaAnh = giaChinhText(sp, cd, tiengAnh: true);
@@ -558,18 +586,75 @@ pw.Widget _macSongNguNheNhang(SanPham sp, CaiDat cd, double tiLe) {
         pw.SizedBox(height: 1.5 * PdfPageFormat.mm),
         _duongKe(day: 0.5),
         pw.SizedBox(height: 3 * PdfPageFormat.mm),
-        _chu(
-          '${tenSecHienThi(sp, cd)} $giaSec / ks',
-          co: 11 * tiLe,
-          serif: true,
-          toiDaDong: 2,
+        _dongNheNhang(
+          tenSecHienThi(sp, cd),
+          giaSec,
+          '/ ks',
+          tiLe,
+          dam: cd.inChuDam,
         ),
         pw.SizedBox(height: 2 * PdfPageFormat.mm),
-        _chu(
-          '${tenAnhHienThi(sp, cd)} $giaAnh / pc',
-          co: 11 * tiLe,
-          serif: true,
-          toiDaDong: 2,
+        _dongNheNhang(
+          tenAnhHienThi(sp, cd),
+          giaAnh,
+          '/ pc',
+          tiLe,
+          dam: cd.inChuDam,
+        ),
+      ],
+    ),
+  );
+}
+
+/// 1 dòng mẫu Nhẹ nhàng: tên nhỏ (11pt), chỉ PHẦN SỐ to đậm (16pt),
+/// chữ "Kč" giữ nhỏ như tên (11pt, căn đáy như giá lớn ở các mẫu
+/// khác), đơn vị nhỏ như tên (11pt). Giá khoảng hiện dạng "100 – 250 Kč".
+/// Tên, chữ "Kč" và đơn vị theo công tắc in đậm; PHẦN SỐ luôn đậm
+/// vì đó là giá (cùng nguyên tắc như _giaLon ở các mẫu khác).
+pw.Widget _dongNheNhang(
+  String ten,
+  String gia,
+  String donVi,
+  double tiLe, {
+  bool dam = false,
+}) {
+  final (so, donViTien) = _tachGia(gia);
+  return pw.RichText(
+    maxLines: 2,
+    text: pw.TextSpan(
+      children: [
+        pw.TextSpan(
+          text: '$ten ',
+          style: pw.TextStyle(
+            font: _phongChu(serif: true, dam: dam),
+            fontSize: 11 * tiLe,
+            color: PdfColors.black,
+          ),
+        ),
+        pw.TextSpan(
+          text: so,
+          style: pw.TextStyle(
+            font: _phongChu(serif: true, dam: true),
+            fontSize: 16 * tiLe,
+            color: PdfColors.black,
+          ),
+        ),
+        if (donViTien.isNotEmpty)
+          pw.TextSpan(
+            text: ' $donViTien',
+            style: pw.TextStyle(
+              font: _phongChu(serif: true, dam: dam),
+              fontSize: 11 * tiLe,
+              color: PdfColors.black,
+            ),
+          ),
+        pw.TextSpan(
+          text: ' $donVi',
+          style: pw.TextStyle(
+            font: _phongChu(serif: true, dam: dam),
+            fontSize: 11 * tiLe,
+            color: PdfColors.black,
+          ),
         ),
       ],
     ),

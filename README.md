@@ -10,7 +10,11 @@ nhiều mẫu để chọn.
 - **Danh sách sản phẩm**: tên tiếng Séc, tên tiếng Anh, mã vạch EAN-13,
   giá, giá giảm + ngày hết hạn giảm giá, đơn vị (ks, kg, l...), khối
   lượng/dung tích để tính đơn giá (100 g / 1 kg). Hỗ trợ giá từ–đến
-  (ví dụ từ 70 đến 100 Kč).
+  (hiện dạng "70 – 100 Kč").
+- **Máy in mặc định**: đặt máy in + cỡ giấy/mác mặc định 1 lần trong
+  Cài đặt, lần sau bấm in là in thẳng, không hiện hộp thoại chọn máy
+  in mỗi lần. Muốn đổi máy in 1 lần thì bấm "Chọn máy in khác" ở
+  màn hình in.
 - **Tìm nhanh**: gõ tên hoặc quét mã vạch là ra sản phẩm để in.
 - **Dùng chung 2 cửa hàng**: danh sách sản phẩm đồng bộ cloud qua
   Firebase project gio-lam (đăng nhập ẩn danh), mất mạng vẫn dùng
@@ -29,13 +33,19 @@ nhiều mẫu để chọn.
   6. Song ngữ – Dải đen — dải đen chữ trắng, 2 tên song song, giá 1 lần to.
   7. Song ngữ – Cổ điển — chữ serif, khung đôi, giá 1 lần to ở dưới.
   8. Song ngữ – Nhẹ nhàng — mỗi dòng 1 ngôn ngữ kèm luôn giá của dòng đó.
+     Tên dài thì bật công tắc "In ngang" ở màn hình in để xoay mẫu
+     ngang 90°, tên vừa 1 dòng.
 - **Chỉnh cỡ chữ theo từng mẫu** (70%–130%): tên hoặc giá dài thì thu
   nhỏ lại cho vừa 1 dòng. Kéo thanh trượt là xem trước đổi ngay, thả
   tay ra là app tự lưu để lần sau khỏi chỉnh lại.
 - **Công tắc lúc in** (như phần mềm cũ): in chữ đậm, in chữ hoa,
   in cả mã vạch, in riêng mã vạch, in mác giá đang giảm giá, in ngày
   hết hạn giảm giá, in giá bình thường trên mác giá giảm giá,
-  in giá không thuế.
+  in giá không thuế. Công tắc "In chữ đậm" áp cho mọi chữ trên mác
+  (số mã vạch, đơn giá, giá cũ, ngày hết hạn, tên tiếng Anh, dòng
+  "/ks · /pc", cả 2 dòng mẫu Nhẹ nhàng); riêng số giá + chữ Kč
+  trong khối giá lớn, tiêu đề "CENA / PRICE" và nhãn "AKCE" luôn
+  đậm theo thiết kế.
 
 ## Chạy app
 
@@ -72,3 +82,12 @@ flutter build windows --release --dart-define=APP_BUILD_NUMBER=<số bản>
   số thì app tự thêm số kiểm tra thành 13 số.
 - Dữ liệu local lưu trong thư mục AppData của app
   (`san-pham.json`, `cai-dat.json`).
+- **Nhật ký khởi động**: app ghi lại các bước mở app và lỗi (nếu có)
+  vào file `nhat-ky-khoi-dong.log` trong thư mục AppData (đường dẫn
+  hiện trong Cài đặt). Nếu app mở không lên hoặc tự tắt, gửi file
+  này cho người làm app để xem lỗi.
+- **Chạy cùng app chấm công HTHSHOP**: 2 app dùng chung project
+  Firebase gio-lam nên app này tắt bộ nhớ đệm Firestore trên máy
+  (chỉ lưu local bằng file JSON) để tránh kẹt khóa file khi 2 app
+  cùng chạy. Lỗi khởi động (cloud, lưu trữ) không làm app tắt —
+  app vẫn mở offline và ghi nhật ký.

@@ -46,6 +46,19 @@ class CaiDat {
   /// Mẫu nào chưa chỉnh thì dùng 1.0.
   final Map<String, double> tiLeChu;
 
+  /// In ngang mẫu Nhẹ nhàng (mẫu 8): xoay nội dung 90° để tên dài
+  /// vừa 1 dòng. Chỉ áp cho mẫu 8, các mẫu khác vẫn in dọc.
+  final bool inNgangMau8;
+
+  /// Máy in mặc định (định danh url của máy in trong gói printing).
+  /// Đặt 1 lần trong Cài đặt thì lần sau bấm in là in thẳng bằng máy
+  /// này, không hiện hộp thoại chọn máy in mỗi lần. Chưa đặt hoặc
+  /// máy in không còn thì app hiện hộp thoại như cũ.
+  final String? mayInMacDinh;
+
+  /// Tên hiển thị của máy in mặc định (để hiện trong Cài đặt).
+  final String? tenMayInMacDinh;
+
   const CaiDat({
     this.rongMm = 80,
     this.mauMac = MauMac.thuong,
@@ -58,6 +71,9 @@ class CaiDat {
     this.inGiaThuongTrenMacGiam = false,
     this.inGiaKhongThue = false,
     this.tiLeChu = const {},
+    this.inNgangMau8 = false,
+    this.mayInMacDinh,
+    this.tenMayInMacDinh,
   });
 
   /// Tỉ lệ cỡ chữ của 1 mẫu (mặc định 1.0 khi chưa chỉnh).
@@ -87,6 +103,12 @@ class CaiDat {
     bool? inGiaThuongTrenMacGiam,
     bool? inGiaKhongThue,
     Map<String, double>? tiLeChu,
+    bool? inNgangMau8,
+    String? mayInMacDinh,
+    String? tenMayInMacDinh,
+    // Đặt true để xóa máy in mặc định (vì truyền null vào
+    // mayInMacDinh thì copyWith hiểu là "giữ nguyên").
+    bool xoaMayInMacDinh = false,
   }) {
     return CaiDat(
       rongMm: rongMm ?? this.rongMm,
@@ -101,6 +123,13 @@ class CaiDat {
           inGiaThuongTrenMacGiam ?? this.inGiaThuongTrenMacGiam,
       inGiaKhongThue: inGiaKhongThue ?? this.inGiaKhongThue,
       tiLeChu: tiLeChu ?? this.tiLeChu,
+      inNgangMau8: inNgangMau8 ?? this.inNgangMau8,
+      mayInMacDinh: xoaMayInMacDinh
+          ? null
+          : (mayInMacDinh ?? this.mayInMacDinh),
+      tenMayInMacDinh: xoaMayInMacDinh
+          ? null
+          : (tenMayInMacDinh ?? this.tenMayInMacDinh),
     );
   }
 
@@ -116,6 +145,9 @@ class CaiDat {
     'inGiaThuongTrenMacGiam': inGiaThuongTrenMacGiam,
     'inGiaKhongThue': inGiaKhongThue,
     'tiLeChu': tiLeChu,
+    'inNgangMau8': inNgangMau8,
+    'mayInMacDinh': mayInMacDinh,
+    'tenMayInMacDinh': tenMayInMacDinh,
   };
 
   factory CaiDat.fromJson(Map<String, dynamic> json) {
@@ -133,6 +165,9 @@ class CaiDat {
       inGiaThuongTrenMacGiam: json['inGiaThuongTrenMacGiam'] as bool? ?? false,
       inGiaKhongThue: json['inGiaKhongThue'] as bool? ?? false,
       tiLeChu: _docTiLeChu(json['tiLeChu']),
+      inNgangMau8: json['inNgangMau8'] as bool? ?? false,
+      mayInMacDinh: json['mayInMacDinh'] as String?,
+      tenMayInMacDinh: json['tenMayInMacDinh'] as String?,
     );
   }
 

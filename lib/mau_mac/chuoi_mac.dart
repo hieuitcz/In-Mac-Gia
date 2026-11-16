@@ -22,7 +22,7 @@ double _giaSauThue(SanPham sp, double gia, CaiDat cd) {
 }
 
 /// Chuỗi giá chính để in: giá 1 mức ("120 Kč") hoặc giá khoảng
-/// ("od 70 do 100 Kč" / "from 70 to 100 Kč"). Đã tính giá giảm
+/// ("70 – 100 Kč", dấu gạch ngang). Đã tính giá giảm
 /// (nếu đang giảm giá) và công tắc giá không thuế.
 String giaChinhText(SanPham sp, CaiDat cd, {bool tiengAnh = false}) {
   if (sp.coGiaKhoang) {

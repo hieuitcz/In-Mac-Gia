@@ -26,6 +26,9 @@ class DongBoCloud {
   /// Lý do chưa đồng bộ được (hiện trong Cài đặt để anh chủ biết).
   String lyDo = 'Chưa thử kết nối.';
 
+  /// Đã tắt bộ nhớ đệm Firestore chưa (chỉ đặt 1 lần, đặt lại sẽ lỗi).
+  static bool _daTatBoDem = false;
+
   /// Khởi tạo Firebase + đăng nhập ẩn danh. Lỗi thì bỏ qua, app vẫn
   /// chạy offline. Hết 10 giây không xong thì coi như mất mạng.
   Future<bool> khoiTao() async {
@@ -39,6 +42,18 @@ class DongBoCloud {
       await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform,
       ).timeout(const Duration(seconds: 10));
+      // Tắt bộ nhớ đệm Firestore trên máy (LevelDB): app chấm công
+      // HTHSHOP dùng chung project gio-lam + tên app mặc định
+      // "[DEFAULT]" nên bộ nhớ đệm có thể dùng chung thư mục/khóa
+      // file với app này, khiến app mở sau không khởi động được
+      // khi app kia đang chạy. Dữ liệu offline thật của app là
+      // file JSON local nên tắt đệm không mất chức năng gì.
+      if (!_daTatBoDem) {
+        FirebaseFirestore.instance.settings = const Settings(
+          persistenceEnabled: false,
+        );
+        _daTatBoDem = true;
+      }
       await FirebaseAuth.instance.signInAnonymously().timeout(
         const Duration(seconds: 10),
       );

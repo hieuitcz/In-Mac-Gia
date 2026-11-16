@@ -23,14 +23,11 @@ void main() {
   });
 
   group('Định dạng giá từ–đến', () {
-    test('kiểu Séc dùng "od ... do ..." ', () {
-      expect(dinhDangGiaKhoang(giaTu: 70, giaDen: 100), 'od 70 do 100 Kč');
-    });
-
-    test('kiểu Anh dùng "from ... to ..." ', () {
+    test('giá khoảng dùng gạch ngang, không phân biệt ngôn ngữ', () {
+      expect(dinhDangGiaKhoang(giaTu: 70, giaDen: 100), '70 – 100 Kč');
       expect(
         dinhDangGiaKhoang(giaTu: 70, giaDen: 100, tiengAnh: true),
-        'from 70 to 100 Kč',
+        '70 – 100 Kč',
       );
     });
 

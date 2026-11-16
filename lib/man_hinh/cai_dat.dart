@@ -1,10 +1,13 @@
-// Màn hình Cài đặt: khổ mác, trạng thái đồng bộ cloud, giới thiệu app.
+// Màn hình Cài đặt: khổ mác, máy in mặc định, trạng thái đồng bộ
+// cloud, nhật ký khởi động, giới thiệu app.
 import 'package:flutter/material.dart';
+import 'package:printing/printing.dart';
 
 import '../dieu_khien.dart';
 import '../firebase_options.dart';
 import '../giao_dien/chu_de.dart';
 import '../main.dart';
+import '../tien_ich/may_in.dart';
 
 class ManHinhCaiDat extends StatefulWidget {
   final DieuKhienApp dieuKhien;
@@ -19,11 +22,26 @@ class _ManHinhCaiDatState extends State<ManHinhCaiDat> {
   late final TextEditingController _rong;
   String? _loi;
 
+  /// Danh sách máy in đã tải (null khi chưa bấm tìm).
+  List<Printer>? _mayIn;
+
+  /// Đang tải danh sách máy in.
+  bool _dangTaiMayIn = false;
+
+  /// Lỗi khi tải danh sách máy in.
+  String? _loiMayIn;
+
+  /// Đường dẫn file nhật ký khởi động.
+  String? _duongDanNhatKy;
+
   @override
   void initState() {
     super.initState();
     final cd = widget.dieuKhien.caiDat;
     _rong = TextEditingController(text: _soThanhChu(cd.rongMm));
+    widget.dieuKhien.kho.duongDanNhatKy.then((duongDan) {
+      if (mounted) setState(() => _duongDanNhatKy = duongDan);
+    });
   }
 
   static String _soThanhChu(double so) {
@@ -56,6 +74,54 @@ class _ManHinhCaiDatState extends State<ManHinhCaiDat> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Đã lưu khổ mác.')));
+    }
+  }
+
+  /// Tải danh sách máy in của máy tính để chọn máy in mặc định.
+  Future<void> _taiDanhSachMayIn() async {
+    setState(() {
+      _dangTaiMayIn = true;
+      _loiMayIn = null;
+    });
+    try {
+      final danhSach = await Printing.listPrinters();
+      if (mounted) {
+        setState(() {
+          _mayIn = danhSach;
+          if (danhSach.isEmpty) _loiMayIn = 'Không tìm thấy máy in nào.';
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _loiMayIn = 'Không tải được máy in: $e');
+    } finally {
+      if (mounted) setState(() => _dangTaiMayIn = false);
+    }
+  }
+
+  /// Lưu máy in đã chọn làm mặc định (lần sau in thẳng, khỏi chọn).
+  Future<void> _chonMayIn(Printer mayIn) async {
+    await widget.dieuKhien.capNhatCaiDat(
+      widget.dieuKhien.caiDat.copyWith(
+        mayInMacDinh: mayIn.url,
+        tenMayInMacDinh: mayIn.name,
+      ),
+    );
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Đã lưu máy in mặc định: ${mayIn.name}.')),
+      );
+    }
+  }
+
+  /// Xóa máy in mặc định (lần sau in lại hiện hộp thoại chọn máy in).
+  Future<void> _xoaMayIn() async {
+    await widget.dieuKhien.capNhatCaiDat(
+      widget.dieuKhien.caiDat.copyWith(xoaMayInMacDinh: true),
+    );
+    if (mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Đã xóa máy in mặc định.')));
     }
   }
 
@@ -109,6 +175,76 @@ class _ManHinhCaiDatState extends State<ManHinhCaiDat> {
                   ],
                 ),
               ),
+              const TieuDeMuc('Máy in mặc định'),
+              TheIOS(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Đặt máy in 1 lần, lần sau bấm in là in thẳng, '
+                      'không hiện hộp thoại chọn máy in mỗi lần. Cỡ '
+                      'giấy/mác mặc định là chiều rộng mác ở mục "Khổ '
+                      'mác" bên trên.',
+                      style: TextStyle(fontSize: 14, color: mauChuPhu),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        const Icon(Icons.print),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            dieuKhien.caiDat.tenMayInMacDinh ??
+                                'Chưa chọn máy in.',
+                            style: const TextStyle(fontSize: 15),
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (_loiMayIn != null) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        _loiMayIn!,
+                        style: const TextStyle(
+                          color: mauNguyHiem,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 12),
+                    if (_dangTaiMayIn)
+                      const Center(child: CircularProgressIndicator())
+                    else if (_mayIn == null)
+                      NutChinh('Tìm máy in', onTap: _taiDanhSachMayIn)
+                    else ...[
+                      DropdownButton<Printer>(
+                        value: timMayInTrongDanhSach(
+                          _mayIn!,
+                          dieuKhien.caiDat.mayInMacDinh,
+                        ),
+                        isExpanded: true,
+                        underline: const SizedBox(),
+                        hint: const Text('Chọn máy in'),
+                        items: _mayIn!
+                            .map(
+                              (m) => DropdownMenuItem(
+                                value: m,
+                                child: Text(m.name),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (m) {
+                          if (m != null) _chonMayIn(m);
+                        },
+                      ),
+                      if (dieuKhien.caiDat.mayInMacDinh != null) ...[
+                        const SizedBox(height: 8),
+                        NutChinh('Xóa máy in mặc định', onTap: _xoaMayIn),
+                      ],
+                    ],
+                  ],
+                ),
+              ),
               const TieuDeMuc('Đồng bộ cloud'),
               TheIOS(
                 child: Column(
@@ -151,6 +287,24 @@ class _ManHinhCaiDatState extends State<ManHinhCaiDat> {
                     NutChinh(
                       'Đồng bộ ngay',
                       onTap: () => dieuKhien.dongBoNgay(),
+                    ),
+                  ],
+                ),
+              ),
+              const TieuDeMuc('Nhật ký khởi động'),
+              TheIOS(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Nếu app mở không lên hoặc tự tắt, gửi file nhật '
+                      'ký này cho người làm app để xem lỗi.',
+                      style: TextStyle(fontSize: 14, color: mauChuPhu),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      _duongDanNhatKy ?? 'Đang tìm đường dẫn...',
+                      style: const TextStyle(fontSize: 13),
                     ),
                   ],
                 ),

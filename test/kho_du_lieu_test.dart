@@ -65,4 +65,16 @@ void main() {
     expect(docLai.rongMm, 80);
     expect(docLai.tiLeChuCua(MauMac.songNguNheNhang), 0.85);
   });
+
+  test('ghi nhật ký khởi động ra file log', () async {
+    final kho = KhoDuLieu(thuMucGhiDe: thuMucTam);
+    await kho.ghiNhatKy('Mở app.');
+    await kho.ghiNhatKy('Lỗi thử: không có mạng.');
+    final tep = File('${thuMucTam.path}/nhat-ky-khoi-dong.log');
+    expect(await tep.exists(), isTrue);
+    final noiDung = await tep.readAsString();
+    expect(noiDung, contains('Mở app.'));
+    expect(noiDung, contains('Lỗi thử: không có mạng.'));
+    expect(await kho.duongDanNhatKy, tep.path);
+  });
 }

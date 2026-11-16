@@ -26,8 +26,11 @@ String _nhomHangNghin(int so) {
 }
 
 /// Định dạng giá khoảng (giá từ–đến) hoặc giá 1 mức.
-/// Kiểu Séc: "od 70 do 100 Kč"; kiểu Anh: "from 70 to 100 Kč".
+/// Giá khoảng dùng dấu gạch ngang, không phân biệt ngôn ngữ để dễ
+/// nhận biết ngay: "70 – 100 Kč" (dấu – có khoảng trắng 2 bên).
 /// Giá 1 mức thì "120 Kč" (cả 2 ngôn ngữ giống nhau).
+/// Tham số tiengAnh giữ lại để khỏi sửa các chỗ gọi hàm, nhưng giá
+/// khoảng giờ không dùng "od ... do ..." / "from ... to ..." nữa.
 String dinhDangGiaKhoang({
   double? gia,
   double? giaTu,
@@ -37,14 +40,14 @@ String dinhDangGiaKhoang({
   if (giaTu != null && giaDen != null) {
     final tu = _boDonViTien(dinhDangGia(giaTu));
     final den = dinhDangGia(giaDen);
-    return tiengAnh ? 'from $tu to $den' : 'od $tu do $den';
+    return '$tu – $den';
   }
   if (gia != null) return dinhDangGia(gia);
   return '';
 }
 
 /// Bỏ hậu tố " Kč" ở cuối chuỗi giá, để ghép lại câu khoảng giá
-/// cho đúng ngữ pháp Séc/Anh ("od 70 do 100 Kč", không lặp "Kč").
+/// ("70 – 100 Kč", không lặp "Kč").
 String _boDonViTien(String gia) {
   return gia.replaceAll(' Kč', '');
 }
