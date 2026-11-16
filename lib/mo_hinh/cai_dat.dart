@@ -108,6 +108,15 @@ class CaiDat {
     return tiLe.clamp(0.7, 1.3);
   }
 
+  /// Lề trái/phải mỗi bên khi in (mm): máy in nhiệt in được hẹp hơn
+  /// khổ giấy nên nội dung phải thụt vào 2 bên, không vẽ ra hết khổ
+  /// (không là chữ ở mép bị máy cắt mất). Khổ 80mm thì chừa 3mm mỗi
+  /// bên, nội dung chiếm 74mm ở giữa; lề theo tỉ lệ khổ giấy đã chỉnh.
+  double get leTrangMm => rongMm * 3 / 80;
+
+  /// Chiều rộng nội dung sau khi trừ lề 2 bên (mm).
+  double get rongNoiDungMm => rongMm - 2 * leTrangMm;
+
   /// Trả về bản cài đặt mới với tỉ lệ cỡ chữ của 1 mẫu đã đổi.
   /// Tỉ lệ tự kẹp trong khoảng 0.7–1.3.
   CaiDat voiTiLeChu(MauMac mau, double tiLe) {

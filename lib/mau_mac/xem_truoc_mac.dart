@@ -19,6 +19,18 @@ class XemTruocMac extends StatelessWidget {
   final MauMac mau;
   final CaiDat caiDat;
 
+  /// Chiều rộng khung xem trước: 320px tương đương khổ giấy 80mm
+  /// (tỉ lệ 4px/mm), cao tự theo nội dung như bản in dọc.
+  static const double _rongXemTruoc = 320;
+
+  /// Lề trái/phải trong xem trước: 3mm ở tỉ lệ 4px/mm, đúng bằng
+  /// lề in (khổ 80mm chừa 3mm mỗi bên) — xem trước hiện đúng kích
+  /// thước thật, nội dung không chạm mép giấy như bản in ra.
+  static const double _leXemTruoc = 12;
+
+  /// Chiều rộng nội dung xem trước sau khi trừ lề 2 bên.
+  static const double _rongNoiDungXemTruoc = _rongXemTruoc - 2 * _leXemTruoc;
+
   const XemTruocMac({
     super.key,
     required this.sanPham,
@@ -36,10 +48,15 @@ class XemTruocMac extends StatelessWidget {
     final mauThuc = mauThucTe(sanPham, caiDat.copyWith(mauMac: mau));
     final tiLe = caiDat.tiLeChuCua(mauThuc);
     return SizedBox(
-      width: 320,
+      width: _rongXemTruoc,
       child: Container(
         color: Colors.white,
-        child: _veMac(sanPham, mauThuc, caiDat, tiLe),
+        // Lề trái/phải như bản in: nội dung thụt vào 2 bên, xem
+        // trước hiện đúng kích thước thật với lề thấy được.
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: _leXemTruoc),
+          child: _veMac(sanPham, mauThuc, caiDat, tiLe),
+        ),
       ),
     );
   }
@@ -181,7 +198,19 @@ class XemTruocMac extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        _giaLon(gia, coSo: 30, serif: serif, tiLe: tiLe, fontMac: cd.fontChu),
+        // Giá khoảng dài (hoặc cỡ chữ kéo lên 130%) mà rộng hơn
+        // nội dung thì tự co nhỏ lại cho vừa khổ, không cắt chữ
+        // ở 2 mép — giống hệt bản in PDF.
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: _giaLon(
+            gia,
+            coSo: 30,
+            serif: serif,
+            tiLe: tiLe,
+            fontMac: cd.fontChu,
+          ),
+        ),
         const SizedBox(height: 2),
         _chu(
           '/ks · /pc',
@@ -199,6 +228,8 @@ class XemTruocMac extends StatelessWidget {
   /// (không nghiêng) để giống hệt bản in PDF — font Liberation đóng
   /// gói không có file đậm-nghiêng nên PDF không vẽ được chữ vừa
   /// đậm vừa nghiêng.
+  /// Tên dài thì xuống bao nhiêu dòng tùy ý (không giới hạn 2 dòng
+  /// nữa): tên rất dài mà chỉ cho 2 dòng thì chữ cuối bị cắt mất.
   Widget _haiTenSongSong(
     SanPham sp,
     CaiDat cd, {
@@ -211,12 +242,14 @@ class XemTruocMac extends StatelessWidget {
         Expanded(
           child: _chu(
             tenSecHienThi(sp, cd),
-            co: 14 * tiLe,
+            // Cỡ 13 (giảm 1 so với trước) cho khớp bản in PDF: lề
+            // trái/phải làm cột tên hẹp hơn nên từ dài mới vừa 1 dòng,
+            // không bị ngắt giữa từ.
+            co: 13 * tiLe,
             dam: cd.inChuDam,
             serif: serif,
             fontMac: cd.fontChu,
             can: TextAlign.right,
-            toiDaDong: 2,
           ),
         ),
         const SizedBox(width: 12),
@@ -225,13 +258,12 @@ class XemTruocMac extends StatelessWidget {
         Expanded(
           child: _chu(
             tenAnhHienThi(sp, cd),
-            co: 13 * tiLe,
+            co: 12 * tiLe,
             dam: cd.inChuDam,
             serif: serif,
             fontMac: cd.fontChu,
             nghieng: !cd.inChuDam,
             can: TextAlign.left,
-            toiDaDong: 2,
           ),
         ),
       ],
@@ -656,85 +688,26 @@ class XemTruocMac extends StatelessWidget {
   }
 
   /// Song ngữ – Nhẹ nhàng, in ngang (mẫu 8): VẪN KHỔ DỌC 80mm
-  /// (dải tem đứng), nhưng CHỮ VIẾT THEO CHIỀU DỌC — chữ xoay 90°
-  /// ngược chiều kim đồng hồ, đọc từ dưới lên trên. Cột "CENA / PRICE"
-  /// ở bên phải, 2 dòng sản phẩm (tiếng Anh rồi tiếng Séc) là các cột
-  /// đứng bên trái nó, có vạch chia dọc giữa các cột, khung viền mỏng
-  /// bao ngoài. Xoay tem 90° theo chiều kim đồng hồ để đọc thì thành:
-  /// tiêu đề "CENA / PRICE" ở trên cùng, dưới nó là 1 đường gạch ngang
-  /// (chính là vạch chia dọc bên cạnh cột tiêu đề), rồi đến các dòng
-  /// sản phẩm. Giá vẫn dạng gạch ngang "100 – 250 Kč", số to + Kč nhỏ
-  /// như đã chốt. Dùng Table 1 hàng × 3 cột, mỗi ô xoay nội dung
-  /// của mình (RotatedBox quarterTurns 3 = 90° ngược chiều kim đồng
-  /// hồ); vạch chia dọc là border verticalInside của bảng.
+  /// (dải tem đứng), nhưng CHỮ VIẾT THEO CHIỀU DỌC — bản chuyển vị
+  /// đúng của mẫu dọc: xoay nguyên mẫu dọc 90° theo chiều kim đồng
+  /// hồ (quarterTurns 1), chữ đọc từ trên xuống dưới như ảnh gốc.
+  /// Cột "CENA / PRICE" ở bên phải, 2 dòng sản phẩm (tiếng Anh rồi
+  /// tiếng Séc) là các cột đứng bên trái nó, khung viền mỏng bao
+  /// ngoài, không thêm vạch chia giữa 2 dòng sản phẩm. Xoay tem 90°
+  /// ngược chiều kim đồng hồ để đọc thì thành: tiêu đề "CENA / PRICE"
+  /// ở trên cùng, dưới nó là 1 đường gạch ngang (chính là gạch ngang
+  /// dưới tiêu đề bản dọc), rồi đến các dòng sản phẩm. Giá vẫn dạng
+  /// gạch ngang "100 – 250 Kč", số to + Kč nhỏ như đã chốt. Chiều dài
+  /// dải tem bằng chiều rộng nội dung bản dọc (khung xem trước trừ
+  /// lề 2 bên).
+  /// (quarterTurns 1 chứ không phải 3: 1 mới cho đúng thứ tự cột như
+  /// bản in PDF — tiêu đề ở bên phải; 3 thì đảo ngược thứ tự cột.)
   Widget _macSongNguNheNhangNgang(SanPham sp, CaiDat cd, double tiLe) {
-    final giaSec = giaChinhText(sp, cd);
-    final giaAnh = giaChinhText(sp, cd, tiengAnh: true);
-
-    // 1 cột dọc: xoay nội dung -90° (đọc từ dưới lên trên), căn giữa
-    // trong cột. Ô bảng được layout với chiều rộng cố định bằng chiều
-    // rộng cột nên Center căn ngang được; căn dọc giữa hàng do
-    // defaultVerticalAlignment của bảng.
-    Widget cotDoc(Widget dong) {
-      // Đệm dọc 12px (~3mm) mỗi đầu: dòng dài nhất chạm sát khung
-      // trên/dưới nếu không có đệm này.
-      return Center(
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          child: RotatedBox(quarterTurns: 3, child: dong),
-        ),
-      );
-    }
-
-    return Padding(
-      padding: const EdgeInsets.all(6),
-      child: Table(
-        columnWidths: const {
-          0: FlexColumnWidth(1),
-          1: FlexColumnWidth(1),
-          2: FlexColumnWidth(1.25),
-        },
-        border: TableBorder(
-          top: const BorderSide(width: 0.5),
-          left: const BorderSide(width: 0.5),
-          right: const BorderSide(width: 0.5),
-          bottom: const BorderSide(width: 0.5),
-          verticalInside: const BorderSide(width: 0.5),
-        ),
-        defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-        children: [
-          TableRow(
-            children: [
-              cotDoc(
-                _dongNheNhang(
-                  tenAnhHienThi(sp, cd),
-                  giaAnh,
-                  '/ pc',
-                  tiLe,
-                  dam: cd.inChuDam,
-                ),
-              ),
-              cotDoc(
-                _dongNheNhang(
-                  tenSecHienThi(sp, cd),
-                  giaSec,
-                  '/ ks',
-                  tiLe,
-                  dam: cd.inChuDam,
-                ),
-              ),
-              cotDoc(
-                _chu(
-                  'CENA / PRICE',
-                  co: 12 * tiLe,
-                  dam: true,
-                  serif: true,
-                  khoangChu: 1,
-                ),
-              ),
-            ],
-          ),
-        ],
+    return RotatedBox(
+      quarterTurns: 1,
+      child: SizedBox(
+        width: _rongNoiDungXemTruoc,
+        child: _macSongNguNheNhang(sp, cd, tiLe),
       ),
     );
   }

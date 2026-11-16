@@ -52,7 +52,12 @@ Future<pw.Document> taoTaiLieuMac({
       taiLieu.addPage(
         pw.Page(
           pageFormat: khoGiay,
-          margin: pw.EdgeInsets.zero,
+          // Lề trái/phải: máy in nhiệt in được hẹp hơn khổ giấy nên
+          // nội dung thụt vào 2 bên (khổ 80mm chừa 3mm mỗi bên),
+          // không vẽ ra hết khổ — chữ ở mép sẽ bị máy cắt mất.
+          margin: pw.EdgeInsets.symmetric(
+            horizontal: caiDat.leTrangMm * PdfPageFormat.mm,
+          ),
           build: (_) => mac,
         ),
       );
@@ -229,6 +234,9 @@ pw.Widget _vachChiaDoc({double cao = 12}) {
 /// - Dòng 1: số giá TO, chữ "Kč" nhỏ đặt ở góc dưới phải của số
 ///   (kiểu _giaLon: số to, Kč nhỏ căn đáy).
 /// - Dòng 2: "/ks · /pc" nhỏ, căn giữa, nằm dưới dòng giá.
+/// Giá khoảng dài (hoặc cỡ chữ kéo lên 130%) mà rộng hơn nội dung
+/// thì FittedBox tự co nhỏ cả dòng giá lại cho vừa khổ, không bao
+/// giờ cắt chữ ở 2 mép.
 pw.Widget _giaSongNguMotLan(
   SanPham sp,
   CaiDat cd, {
@@ -239,7 +247,16 @@ pw.Widget _giaSongNguMotLan(
   return pw.Column(
     crossAxisAlignment: pw.CrossAxisAlignment.center,
     children: [
-      _giaLon(gia, coSo: 28, serif: serif, tiLe: tiLe, fontMac: cd.fontChu),
+      pw.FittedBox(
+        fit: pw.BoxFit.scaleDown,
+        child: _giaLon(
+          gia,
+          coSo: 28,
+          serif: serif,
+          tiLe: tiLe,
+          fontMac: cd.fontChu,
+        ),
+      ),
       pw.SizedBox(height: 1 * PdfPageFormat.mm),
       _chu(
         '/ks · /pc',
@@ -254,10 +271,12 @@ pw.Widget _giaSongNguMotLan(
 }
 
 /// Hàng 2 tên song song, có vạch chia ở giữa (3 kiểu song ngữ giá 1 lần).
-/// Tên Séc theo công tắc in đậm. Tên Anh in nghiêng khi tắt đậm;
-/// khi bật đậm thì in đậm thẳng (không nghiêng) vì font Liberation
-/// đóng gói không có file đậm-nghiêng nên PDF không vẽ được chữ
-/// vừa đậm vừa nghiêng.
+/// Tên dài thì xuống bao nhiêu dòng tùy ý (không giới hạn 2 dòng
+/// nữa): tên rất dài mà chỉ cho 2 dòng thì chữ cuối bị cắt mất, còn
+/// mác chỉ dài thêm chứ không mất chữ. Tên Séc theo công tắc in đậm.
+/// Tên Anh in nghiêng khi tắt đậm; khi bật đậm thì in đậm thẳng
+/// (không nghiêng) vì font Liberation đóng gói không có file
+/// đậm-nghiêng nên PDF không vẽ được chữ vừa đậm vừa nghiêng.
 pw.Widget _haiTenSongSong(
   SanPham sp,
   CaiDat cd, {
@@ -270,12 +289,14 @@ pw.Widget _haiTenSongSong(
       pw.Expanded(
         child: _chu(
           tenSecHienThi(sp, cd),
-          co: 12 * tiLe,
+          // Cỡ 11pt (giảm 1pt so với trước): lề trái/phải làm cột tên
+          // hẹp hơn 3mm nên từ dài thường gặp (SMALTOVANÉ 27,8mm,
+          // ČOKOLÁDOVÉ 28,5mm) mới vừa 1 dòng, không bị ngắt giữa từ.
+          co: 11 * tiLe,
           dam: cd.inChuDam,
           serif: serif,
           fontMac: cd.fontChu,
           can: pw.TextAlign.right,
-          toiDaDong: 2,
         ),
       ),
       pw.SizedBox(width: 3 * PdfPageFormat.mm),
@@ -284,13 +305,12 @@ pw.Widget _haiTenSongSong(
       pw.Expanded(
         child: _chu(
           tenAnhHienThi(sp, cd),
-          co: 11 * tiLe,
+          co: 10 * tiLe,
           dam: cd.inChuDam,
           serif: serif,
           fontMac: cd.fontChu,
           nghieng: !cd.inChuDam,
           can: pw.TextAlign.left,
-          toiDaDong: 2,
         ),
       ),
     ],
@@ -719,94 +739,23 @@ pw.Widget _dongNheNhang(
 }
 
 /// Song ngữ – Nhẹ nhàng, in ngang (mẫu 8): VẪN KHỔ DỌC 80mm
-/// (dải tem đứng), nhưng CHỮ VIẾT THEO CHIỀU DỌC — chữ xoay 90°
-/// ngược chiều kim đồng hồ, đọc từ dưới lên trên. Cột "CENA / PRICE"
-/// ở bên phải, 2 dòng sản phẩm (tiếng Anh rồi tiếng Séc) là các cột
-/// đứng bên trái nó, có vạch chia dọc giữa các cột, khung viền mỏng
-/// bao ngoài. Xoay tem 90° theo chiều kim đồng hồ để đọc thì thành:
+/// (dải tem đứng), nhưng CHỮ VIẾT THEO CHIỀU DỌC — bản chuyển vị
+/// đúng của mẫu dọc: xoay nguyên mẫu dọc -90° (chữ đọc từ trên
+/// xuống dưới, như ảnh gốc). Cột "CENA / PRICE" ở bên phải, 2 dòng
+/// sản phẩm (tiếng Anh rồi tiếng Séc) là các cột đứng bên trái nó,
+/// khung viền mỏng bao ngoài, không thêm vạch chia giữa 2 dòng sản
+/// phẩm. Xoay tem 90° ngược chiều kim đồng hồ để đọc thì thành:
 /// tiêu đề "CENA / PRICE" ở trên cùng, dưới nó là 1 đường gạch ngang
-/// (chính là vạch chia dọc bên cạnh cột tiêu đề), rồi đến các dòng
-/// sản phẩm. Giá vẫn dạng gạch ngang "100 – 250 Kč", số to + Kč nhỏ
-/// như đã chốt.
-/// Dùng pw.Table 1 hàng × 3 cột: mỗi ô xoay nội dung của mình
-/// (rotateBox -90°) nên không cần xoay cả tem; vạch chia dọc là
-/// border verticalInside của bảng, căng đủ chiều cao dải tem.
+/// (chính là gạch ngang dưới tiêu đề bản dọc), rồi đến các dòng sản
+/// phẩm. Giá vẫn dạng gạch ngang "100 – 250 Kč", số to + Kč nhỏ
+/// như đã chốt. Chiều dài dải tem bằng chiều rộng nội dung bản dọc
+/// (khổ giấy trừ lề 2 bên), chiều rộng dải bằng chiều cao bản dọc.
 pw.Widget _macSongNguNheNhangNgang(SanPham sp, CaiDat cd, double tiLe) {
-  final giaSec = giaChinhText(sp, cd);
-  final giaAnh = giaChinhText(sp, cd, tiengAnh: true);
-
-  // 1 cột dọc: xoay nội dung -90° (đọc từ dưới lên trên), căn giữa
-  // trong cột. Ô bảng được layout với chiều rộng cố định bằng chiều
-  // rộng cột nên Center căn ngang được; căn dọc giữa hàng do
-  // defaultVerticalAlignment của bảng.
-  // unconstrained: true là bắt buộc: không có nó thì dòng chữ bị
-  // layout theo chiều rộng cột (~26mm) rồi mới xoay nên chữ chồng
-  // lên nhau; có nó thì dòng chữ layout theo độ rộng tự nhiên
-  // (1 dòng) rồi mới xoay, chiều dài dải tem bằng dòng dài nhất.
-  pw.Widget cotDoc(pw.Widget dong) {
-    return pw.Center(
-      // Đệm dọc 3mm mỗi đầu: dòng dài nhất chạm sát khung trên/dưới
-      // nếu không có đệm này (chiều cao hàng bằng đúng dòng dài nhất).
-      child: pw.Container(
-        padding: pw.EdgeInsets.symmetric(vertical: 3 * PdfPageFormat.mm),
-        child: pw.Transform.rotateBox(
-          angle: -math.pi / 2,
-          unconstrained: true,
-          child: dong,
-        ),
-      ),
-    );
-  }
-
-  return pw.Padding(
-    padding: pw.EdgeInsets.all(1.5 * PdfPageFormat.mm),
-    child: pw.Table(
-      columnWidths: const {
-        0: pw.FlexColumnWidth(1),
-        1: pw.FlexColumnWidth(1),
-        2: pw.FlexColumnWidth(1.25),
-      },
-      border: pw.TableBorder(
-        top: const pw.BorderSide(width: 0.5),
-        left: const pw.BorderSide(width: 0.5),
-        right: const pw.BorderSide(width: 0.5),
-        bottom: const pw.BorderSide(width: 0.5),
-        verticalInside: const pw.BorderSide(width: 0.5),
-      ),
-      defaultVerticalAlignment: pw.TableCellVerticalAlignment.middle,
-      children: [
-        pw.TableRow(
-          children: [
-            cotDoc(
-              _dongNheNhang(
-                tenAnhHienThi(sp, cd),
-                giaAnh,
-                '/ pc',
-                tiLe,
-                dam: cd.inChuDam,
-              ),
-            ),
-            cotDoc(
-              _dongNheNhang(
-                tenSecHienThi(sp, cd),
-                giaSec,
-                '/ ks',
-                tiLe,
-                dam: cd.inChuDam,
-              ),
-            ),
-            cotDoc(
-              _chu(
-                'CENA / PRICE',
-                co: 10 * tiLe,
-                dam: true,
-                serif: true,
-                khoangChu: 1,
-              ),
-            ),
-          ],
-        ),
-      ],
+  return pw.Transform.rotateBox(
+    angle: -math.pi / 2,
+    child: pw.SizedBox(
+      width: cd.rongNoiDungMm * PdfPageFormat.mm,
+      child: _macSongNguNheNhang(sp, cd, tiLe),
     ),
   );
 }
